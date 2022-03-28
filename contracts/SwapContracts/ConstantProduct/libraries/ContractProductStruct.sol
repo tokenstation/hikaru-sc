@@ -11,5 +11,6 @@ library ConstantProductStruct {
         address[] tokens;
         uint256[] balances;
         uint256[] multipliers;
+        uint256[] weights;
     }
 }

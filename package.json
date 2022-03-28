@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.5.0"
+  },
+  "name": "dswap-contracts-v1",
+  "description": "DSwap - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tokenstation/DSwap-Contracts-V1.git"
+  },
+  "keywords": [
+    "solidity",
+    "DeX"
+  ],
+  "author": "tokenstation.dev",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/tokenstation/DSwap-Contracts-V1/issues"
+  },
+  "homepage": "https://github.com/tokenstation/DSwap-Contracts-V1#readme"
+}

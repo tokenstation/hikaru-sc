@@ -14,7 +14,7 @@ import {ConstantProductStruct} from "./ContractProductStruct.sol";
  */
 
 library ConstantProductMath {
-    function drySwap(
+    function swap(
         ConstantProductStruct.ConstantProductParams memory cpp,
         uint8 tokenInId,
         uint8 tokenOutId,
@@ -24,7 +24,7 @@ library ConstantProductMath {
         
     }
 
-    function drySwapExactOut(
+    function swapExactOut(
         ConstantProductStruct.ConstantProductParams memory cpp,
         uint8 tokenInId,
         uint8 tokenOutId,
