@@ -8,6 +8,7 @@ interface IERC20 {
     function balanceOf(address user) external view returns (uint256 balance);
     function transfer(address to, uint256 amount) external returns(bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function decimals() external view returns (uint8);
 }
 
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
@@ -16,7 +17,9 @@ import { FixedPoint } from "./utils/FixedPoint.sol";
 contract WeightedPool {
     using FixedPoint for uint256;
 
-    address[] public tokens;
+    uint256 internal constant ONE = 1e18;
+
+    address[] public immutable tokens;
     uint256[] public balances;
     uint256[] public weights;
     uint256[] public multipliers;
@@ -24,7 +27,43 @@ contract WeightedPool {
     uint256 public swapFee;
     uint256 public depositFee;
 
-    function getTokenId(address tokenAddress) external returns (uint256 tokenId) {}
+    constructor(
+        address[] calldata tokens_,
+        uint256[] calldata weights_,
+        uint256 swapFee_,
+        uint256 depositFee_
+    ) {
+        require(
+            tokens_.length == weights_.length
+            "Array length mismatch"
+        );
+        uint256 weightSum = 0;
+        for(uint256 tokenId = 0; tokenId < weights_.length; tokenId++) {
+            weightSum += weights[tokenId];
+        }
+        require(
+            weightSum == ONE,
+            "Weight sum is not equal to 1e18 (ONE)"
+        );
+        multipliers = new uint256[](tokens_.length);
+        for (uint256 tokenId = 0; tokenId < tokens_.length; tokenId++) {
+            multipliers[tokenId] = 10 ** (18 - IERC20(tokens[tokenId]).decimals());
+        }
+        tokens = tokens_;
+        weights = weights_;
+        swapFee = swapFee_;
+        depositFee = depositFee_;
+    }
+
+    function getTokenId(address tokenAddress) external returns (uint256 tokenId) {
+        for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
+            if (tokens[tokenId] == tokenAddress) return tokenId;
+        }
+        require(
+            false,
+            "There is no token with provided token address"
+        );
+    }
 
     modifier checkDeadline(uint64 deadline) {
         require(
@@ -43,6 +82,18 @@ contract WeightedPool {
         }
         _;
     }
+
+    function normalizeBalance(
+        uint256 amount,
+        uint256 tokenId
+    )
+        internal
+        view
+        returns (uint256 normalizedBalance)
+    {
+        normalizedBalance = balances[tokenId] * multipliers[tokenId];
+    }
+
 
     function swap(
         uint256 tokenIn,
@@ -63,20 +114,20 @@ contract WeightedPool {
             amountIn,
             true
         );
-        _checkTransferResult(amountIn, received);
-
-        uint256 fee = amountIn.mulDown(swapFee);
 
         uint256 swapResult = WeightedMath._calcOutGivenIn(
             balances[tokenIn], 
             weights[tokenIn], 
             balances[tokenOut],
             weights[tokenOut], 
-            amountIn - fee
+            amountIn
         );
 
+        uint256 fee = swapResult.mulDown(swapFee);
+        uint256 swapResultWithoutFee = swapResult - fee;
+
         require(
-            swapResult >= minAmountOut,
+            swapResultWithoutFee >= minAmountOut,
             "Not enough tokens received"
         );
 
@@ -84,13 +135,12 @@ contract WeightedPool {
             tokens[tokenOut], 
             address(this), 
             msg.sender, 
-            swapResult, 
+            swapResultWithoutFee, 
             false
         );
-        _checkTransferResult(swapResult, sent);
 
         _changeBalance(tokenIn, amountIn, true);
-        _changeBalance(tokenOut, swapResult, false);
+        _changeBalance(tokenOut, swapResultWithoutFee, false);
         
         return swapResult;
     }
@@ -103,24 +153,11 @@ contract WeightedPool {
         balances[tokenId] = positive ? balances[tokenId] + amount : balances[tokenId] - amount;
     }
 
-    function _checkTransferResult(
-        uint256 expected,
-        uint256 transferred
-    )
-        internal
-        pure
-    {
-        require(
-            expected == transferred,
-            "Tokens with transfer fees are not supported in this pool"
-        );
-    }
-
     function swapExactOut(
         uint256 tokenIn,
         uint256 tokenOut,
         uint256 amountOut,
-        uint256 amountOutMax,
+        uint256 amountInMax,
         uint64 deadline
     )
         external
@@ -135,7 +172,34 @@ contract WeightedPool {
             weights[tokenOut], 
             amountOut
         );
-        uint256 amountIn = amountInWithoutFee.div
+
+        // full = part / (1 - swapFee)
+        uint256 amountIn = amountInWithoutFee.divDown(ONE - swapFee);
+        require(
+            amountIn <= amountInMax,
+            "Too much tokens is used for swap"
+        );
+
+        uint256 received = _transferAndCheckBalances(
+            tokens[tokenIn],
+            msg.sender,
+            address(this),
+            amountIn,
+            true
+        );
+
+        uint256 sent = _transferAndCheckBalances(
+            tokens[tokenOut],
+            address(this)
+            msg.sender,
+            amountOut,
+            false
+        );
+
+        _changeBalance(tokenIn, amountIn, true);
+        _changeBalance(tokenOut, amountOut, false);
+
+        return amountIn;
     }
 
     function _transferAndCheckBalances(
@@ -155,21 +219,55 @@ contract WeightedPool {
             IERC20(token).transferFrom(from, to, amount);
         }
         uint256 balanceOut = IERC20(token).balanceOf(to);
-        return balanceOut - balanceIn;
+        uint256 transferred = balanceOut - balanceIn;
+        _checkTransferResult(amount, transferred)
+        return transferred;
+    }
+
+    function _checkTransferResult(
+        uint256 expected,
+        uint256 transferred
+    )
+        internal
+        pure
+    {
+        require(
+            expected == transferred,
+            "Tokens with transfer fees are not supported in this pool"
+        );
     }
 
     function calculateSwap(
         uint256 tokenIn,
         uint256 tokenOut,
-        uint256 amountIn,
+        uint256 swapAmount,
         bool exactIn
     )
         external
-        returns(uint256 amountOut)
+        returns(uint256 swapResult, uint256 fee)
     {
-        // TODO: get fees
-        // TODO: calculate swap
-        return 0;
+        if (exactIn) {
+            uint256 amountOut = WeightedMath._calcOutGivenIn(
+                balances[tokenIn], 
+                weights[tokenIn], 
+                balances[tokenOut],
+                weights[tokenOut], 
+                swapAmount
+            );
+            fee = amountOut.mulDown(swapFee);
+            swapResult -= fee;
+        } else {
+            uint256 amountIn = WeightedMath._calcInGivenOut(
+                balances[tokenIn],
+                weights[tokenIn],
+                balances[tokenOut],
+                weights[tokenOut],
+                swapAmount
+            );
+            swapResult = amountIn.divDown(ONE - swapFee);
+            fee = swapResult - swapAmount;
+        }
+        
     }
 
     function addOrRemoveToken(
