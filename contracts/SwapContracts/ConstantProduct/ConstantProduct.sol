@@ -4,59 +4,82 @@
 
 pragma solidity 0.8.13;
 
-interface IERC20 {
-    function balanceOf(address user) external view returns (uint256 balance);
-    function transfer(address to, uint256 amount) external returns(bool);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function decimals() external view returns (uint8);
-}
+import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
 import { FixedPoint } from "./utils/FixedPoint.sol";
 
-contract WeightedPool {
+contract WeightedPool is ERC20 {
+
+    // TODO: Check other todo's
+    // TODO: hide weighted math usage + token transfers
+    // TODO: add join/exit pool using one token
+    // TODO: add unified interface for exchange (probably will be added to vault)
+    // TODO: use same names for variables in contract
+    // TODO: refactor contract
+    // TODO: apply optimisations where possible and it does not obscure code
+    // TODO: check difference between immutable and default variable cost
+    // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
+
+    event Swap(uint256 tokenIn, uint256 tokenOut, uint256 received, uint256 sent, address user);
+    event Deposit(uint256 lpAmount, uint256[] received, address user);
+    event Withdraw(uint256 lpAmount, uint256[] withdrawn, address user);
+
+
     using FixedPoint for uint256;
 
     uint256 internal constant ONE = 1e18;
 
-    address[] public immutable tokens;
+    address[] public tokens;
     uint256[] public balances;
     uint256[] public weights;
     uint256[] public multipliers;
 
     uint256 public swapFee;
     uint256 public depositFee;
+    uint256 public immutable nTokens;
 
     constructor(
-        address[] calldata tokens_,
-        uint256[] calldata weights_,
+        address[] memory tokens_,
+        uint256[] memory weights_,
         uint256 swapFee_,
-        uint256 depositFee_
-    ) {
+        uint256 depositFee_,
+        string memory name,
+        string memory symbol
+    ) 
+        ERC20(name, symbol)
+    {
+        // TODO: check that there is no zero-address tokens
         require(
-            tokens_.length == weights_.length
+            tokens_.length == weights_.length,
             "Array length mismatch"
         );
+        uint256 tokenAmount = tokens_.length;
         uint256 weightSum = 0;
-        for(uint256 tokenId = 0; tokenId < weights_.length; tokenId++) {
-            weightSum += weights[tokenId];
+        for(uint256 tokenId = 0; tokenId < tokenAmount; tokenId++) {
+            weightSum += weights_[tokenId];
         }
         require(
             weightSum == ONE,
             "Weight sum is not equal to 1e18 (ONE)"
         );
         multipliers = new uint256[](tokens_.length);
-        for (uint256 tokenId = 0; tokenId < tokens_.length; tokenId++) {
-            multipliers[tokenId] = 10 ** (18 - IERC20(tokens[tokenId]).decimals());
+        for (uint256 tokenId = 0; tokenId < tokenAmount; tokenId++) {
+            multipliers[tokenId] = 10 ** (18 - IERC20Metadata(tokens_[tokenId]).decimals());
         }
+        nTokens = tokenAmount;
         tokens = tokens_;
         weights = weights_;
         swapFee = swapFee_;
         depositFee = depositFee_;
     }
 
-    function getTokenId(address tokenAddress) external returns (uint256 tokenId) {
-        for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
+    function getTokenId(address tokenAddress) 
+        external 
+        view 
+        returns (uint256 tokenId) 
+    {
+        for (tokenId = 0; tokenId < tokens.length; tokenId++) {
             if (tokens[tokenId] == tokenAddress) return tokenId;
         }
         require(
@@ -83,8 +106,8 @@ contract WeightedPool {
         _;
     }
 
+    // TODO: remove function
     function normalizeBalance(
-        uint256 amount,
         uint256 tokenId
     )
         internal
@@ -120,7 +143,7 @@ contract WeightedPool {
             weights[tokenIn], 
             balances[tokenOut],
             weights[tokenOut], 
-            amountIn
+            received
         );
 
         uint256 fee = swapResult.mulDown(swapFee);
@@ -142,15 +165,9 @@ contract WeightedPool {
         _changeBalance(tokenIn, amountIn, true);
         _changeBalance(tokenOut, swapResultWithoutFee, false);
         
-        return swapResult;
-    }
+        emit Swap(tokenIn, tokenOut, received, sent, msg.sender);
 
-    function _changeBalance(
-        uint256 tokenId,
-        uint256 amount,
-        bool positive
-    ) internal {
-        balances[tokenId] = positive ? balances[tokenId] + amount : balances[tokenId] - amount;
+        return swapResult;
     }
 
     function swapExactOut(
@@ -173,8 +190,7 @@ contract WeightedPool {
             amountOut
         );
 
-        // full = part / (1 - swapFee)
-        uint256 amountIn = amountInWithoutFee.divDown(ONE - swapFee);
+        amountIn = amountInWithoutFee.divDown(ONE - swapFee);
         require(
             amountIn <= amountInMax,
             "Too much tokens is used for swap"
@@ -190,52 +206,85 @@ contract WeightedPool {
 
         uint256 sent = _transferAndCheckBalances(
             tokens[tokenOut],
-            address(this)
+            address(this),
             msg.sender,
             amountOut,
             false
         );
 
-        _changeBalance(tokenIn, amountIn, true);
-        _changeBalance(tokenOut, amountOut, false);
+        _changeBalance(tokenIn, received, true);
+        _changeBalance(tokenOut, sent, false);
 
-        return amountIn;
+        emit Swap(tokenIn, tokenOut, received, sent, msg.sender);
     }
 
-    function _transferAndCheckBalances(
-        address token,
-        address from,
-        address to,
-        uint256 amount,
-        bool transferFrom
-    ) 
-        internal  
-        returns (uint256 transferred)
-    {
-        uint256 balanceIn = IERC20(token).balanceOf(to);
-        if (transferFrom) {
-            IERC20(token).transfer(to, amount);
-        } else {
-            IERC20(token).transferFrom(from, to, amount);
-        }
-        uint256 balanceOut = IERC20(token).balanceOf(to);
-        uint256 transferred = balanceOut - balanceIn;
-        _checkTransferResult(amount, transferred)
-        return transferred;
-    }
-
-    function _checkTransferResult(
-        uint256 expected,
-        uint256 transferred
+    function joinPool(
+        uint256[] memory amounts_,
+        uint64 deadline
     )
-        internal
-        pure
+        external
+        checkDeadline(deadline)
+        returns(uint256 lpAmount)
     {
         require(
-            expected == transferred,
-            "Tokens with transfer fees are not supported in this pool"
+            amounts_.length == tokens.length,
+            "Invalid array size"
         );
+        uint256[] memory swapFees;
+        (lpAmount, swapFees) = WeightedMath._calcBptOutGivenExactTokensIn(
+            balances, 
+            multipliers, 
+            amounts_,
+            totalSupply(),
+            swapFee
+        );
+
+        for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
+            _transferAndCheckBalances(
+                tokens[tokenId],
+                msg.sender,
+                address(this),
+                amounts_[tokenId],
+                true
+            );
+            _changeBalance(tokenId, amounts_[tokenId], false);
+        }
+
+        _mint(msg.sender, lpAmount);
+
+        emit Deposit(lpAmount, amounts_, msg.sender);
     }
+
+    function exitPool(
+        uint256 lpAmount,
+        uint64 deadline
+    )
+        external
+        checkDeadline(deadline)
+        returns (uint256[] memory tokensReceived)
+    {
+        tokensReceived = WeightedMath._calcTokensOutGivenExactBptIn(
+            balances,
+            lpAmount,
+            totalSupply()
+        );
+        for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
+            _transferAndCheckBalances(
+                tokens[tokenId],
+                address(this),
+                msg.sender,
+                tokensReceived[tokenId],
+                false
+            );
+            _changeBalance(tokenId, tokensReceived[tokenId], true);
+        }
+
+        emit Withdraw(lpAmount, tokensReceived, msg.sender);
+    }
+
+    /*************************************************
+                      Dry run functions
+     *************************************************/
 
     function calculateSwap(
         uint256 tokenIn,
@@ -244,6 +293,7 @@ contract WeightedPool {
         bool exactIn
     )
         external
+        view
         returns(uint256 swapResult, uint256 fee)
     {
         if (exactIn) {
@@ -270,33 +320,81 @@ contract WeightedPool {
         
     }
 
-    function addOrRemoveToken(
-        uint256 token,
-        uint256 amount,
-        bool add
+    function calculateJoin(
+        uint256[] calldata amountsIn
     )
         external
-        returns(uint256 mintedAmount)
+        view
+        returns (uint256 lpAmount)
     {
-        // TODO: check if we want to add or to remove tokens
-        // TODO: prechecks
-        // TODO: calculate amount of tokens to deposit/use for swap
-        // TODO: calculate minted amount
-        return 0;
+        (lpAmount, ) = WeightedMath._calcBptOutGivenExactTokensIn(
+            balances, 
+            multipliers, 
+            amountsIn,
+            totalSupply(),
+            swapFee
+        );
     }
 
-    function addOrRemoveTokens(
-        uint256[] calldata token,
-        uint256[] memory amounts,
-        bool add
+    function calculateExit(
+        uint256 lpAmount
     )
         external
-        returns(uint256 mintedAmount)
+        view
+        returns (uint256[] memory tokensReceived)
     {
-        // TODO: check if we want to add or to remove tokens
-        // TODO: prechecks
-        // TODO: calculate amount of tokens to deposit/remove
-        // TODO: calculate burnt amount and burn it
-        return 0;
+        tokensReceived = WeightedMath._calcTokensOutGivenExactBptIn(
+            balances,
+            lpAmount,
+            totalSupply()
+        );
+    }
+
+    /*************************************************
+                      Move to Utils
+     *************************************************/
+
+    function _changeBalance(
+        uint256 tokenId,
+        uint256 amount,
+        bool positive
+    ) internal {
+        balances[tokenId] = positive ? balances[tokenId] + amount : balances[tokenId] - amount;
+    }
+
+    function _transferAndCheckBalances(
+        address token,
+        address from,
+        address to,
+        uint256 amount,
+        bool transferFrom_
+    ) 
+        internal  
+        returns (uint256 transferred)
+    {
+        if (amount == 0) return 0;
+
+        uint256 balanceIn = IERC20(token).balanceOf(to);
+        if (transferFrom_) {
+            IERC20(token).transfer(to, amount);
+        } else {
+            IERC20(token).transferFrom(from, to, amount);
+        }
+        uint256 balanceOut = IERC20(token).balanceOf(to);
+        transferred = balanceOut - balanceIn;
+        _checkTransferResult(amount, transferred);
+    }
+
+    function _checkTransferResult(
+        uint256 expected,
+        uint256 transferred
+    )
+        internal
+        pure
+    {
+        require(
+            expected == transferred,
+            "Tokens with transfer fees are not supported in this pool"
+        );
     }
 }   
