@@ -12,6 +12,7 @@ import { FixedPoint } from "./utils/FixedPoint.sol";
 contract WeightedPool is ERC20 {
 
     // TODO: Check other todo's
+    // TODO: add functions to change pool parameters (swap fees)
     // TODO: hide weighted math usage + token transfers
     // TODO: add join/exit pool using one token
     // TODO: add unified interface for exchange (probably will be added to vault)
@@ -30,6 +31,8 @@ contract WeightedPool is ERC20 {
 
     uint256 internal constant ONE = 1e18;
 
+    address public poolManager;
+
     address[] public tokens;
     uint256[] public balances;
     uint256[] public weights;
@@ -39,7 +42,33 @@ contract WeightedPool is ERC20 {
     uint256 public depositFee;
     uint256 public immutable nTokens;
 
+    event PoolManagerUpdate(address newPoolManager, address previousPoolManager);
+    event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
+
+    function setNewFees(
+        uint256 newSwapFee_,
+        uint256 newDepositFee_
+    )
+        external
+        onlyPoolManager(msg.sender)
+    {
+        swapFee = newSwapFee_;
+        depositFee = newDepositFee_;
+        emit FeesUpdate(newSwapFee_, newDepositFee_);
+    }
+
+    function setNewPoolManager(
+        address newPoolManager_
+    )
+        external
+        onlyPoolManager(msg.sender)
+    {
+        emit PoolManagerUpdate(newPoolManager_, poolManager);
+        poolManager = newPoolManager_;
+    }
+
     constructor(
+        address poolManager_,
         address[] memory tokens_,
         uint256[] memory weights_,
         uint256 swapFee_,
@@ -67,6 +96,8 @@ contract WeightedPool is ERC20 {
         for (uint256 tokenId = 0; tokenId < tokenAmount; tokenId++) {
             multipliers[tokenId] = 10 ** (18 - IERC20Metadata(tokens_[tokenId]).decimals());
         }
+
+        poolManager = poolManager_;
         nTokens = tokenAmount;
         tokens = tokens_;
         weights = weights_;
@@ -96,13 +127,21 @@ contract WeightedPool is ERC20 {
         _;
     }
 
-    modifier checkTokenIds(uint256[2] memory tokenIds) {
-        for(uint256 id = 0; id < 2; id++) {
-            require(
-                tokenIds[id] < tokens.length,
-                "There is no token with provided token id"
-            );
-        }
+    modifier checkTokenIds(uint256 firstTokenId, uint256 secondTokenId) {
+        require(
+            firstTokenId != secondTokenId &&
+            firstTokenId < tokens.length &&
+            secondTokenId < tokens.length,
+            "There is no token with provided token id"
+        );
+        _;
+    }
+
+    modifier onlyPoolManager(address user) {
+        require(
+            msg.sender == user,
+            "Only pool manager can call this function"
+        );
         _;
     }
 
@@ -127,7 +166,7 @@ contract WeightedPool is ERC20 {
     ) 
         external
         checkDeadline(deadline)
-        checkTokenIds([tokenIn, tokenOut])
+        checkTokenIds(tokenIn, tokenOut)
         returns (uint256 amountOut)
     {
         uint256 received = _transferAndCheckBalances(
@@ -179,7 +218,7 @@ contract WeightedPool is ERC20 {
     )
         external
         checkDeadline(deadline)
-        checkTokenIds([tokenIn, tokenOut])
+        checkTokenIds(tokenIn, tokenOut)
         returns (uint256 amountIn)
     {
         uint256 amountInWithoutFee = WeightedMath._calcInGivenOut(
