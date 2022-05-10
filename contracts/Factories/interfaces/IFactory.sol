@@ -6,5 +6,5 @@ pragma solidity 0.8.13;
 
 interface IFactory {
     function getPoolById(uint256 poolId) external view returns(address poolAddress);
-    function checkPoolAddress(address poolAddress) external view returns(bool knownPool);
+    function checkPoolAddress(address poolAddress) external view returns(bool poolExists);
 }

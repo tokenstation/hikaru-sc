@@ -9,10 +9,11 @@ import { IFactory } from "./interfaces/IFactory.sol";
 import { IWeightedPoolVault } from "../Vaults/interfaces/IWeightedVault.sol";
 
 // TODO: Add interface for default (fallback) swap that can be used in any pool
-// TODO: Create contract that will construct name and symbol;
 
 
 contract WeightedPoolFactory is IFactory {
+
+    uint256 constant public MAX_TOKENS = 20;
 
     event PoolCreated(
         address indexed poolAddress,
@@ -25,6 +26,7 @@ contract WeightedPoolFactory is IFactory {
 
     string constant public basePoolsName = "WeightedPool";
     string constant public version = "v1";
+    uint256 constant internal ONE = 1e18;
 
     address[] public pools;
     mapping(address => bool) public knownPools;
@@ -35,7 +37,7 @@ contract WeightedPoolFactory is IFactory {
       cost = 22100 + 2200 - 19900 = 4400 gas per token
       usually there are 2-5 tokens, so cost of uniqueness check is ~8k-20k
 
-      Also, mappings can only be created as state variables (because there are memes with mapping memory layout)
+      Also, mappings can only be created as state variables (as of solc 0.8.13)
      */
     mapping(address => bool) internal uniqueTokens;
 
@@ -54,23 +56,37 @@ contract WeightedPoolFactory is IFactory {
             tokens_.length == weights_.length,
             "Invalid array length"
         );
+        require(
+            tokens_.length >= 2,
+            "Cannot create pool with 0 or 1 token"
+        );
+        require(
+            tokens_.length <= MAX_TOKENS,
+            "Cannot create pool with more than 20 tokens"
+        );
+
         uint256 weightSum = 0;
         for (uint256 tokenId = 0; tokenId < tokens_.length; tokenId++) {
             require(
                 tokens_[tokenId] != address(0),
-                "Zero-address is prohibited"
+                "Zero-address tokens are forbidden"
             );
             require(
                 !uniqueTokens[tokens_[tokenId]],
-                "Token duplication is prohibited"
+                "Token duplication detected. Pool can only have unique tokens."
+            );
+            require(
+                weights_[tokenId] >= 0, // TODO: add real value
+                "Weight cannot be lower than {value}"
             );
 
             uniqueTokens[tokens_[tokenId]] = true;
             weightSum += weights_[tokenId];
         }
+
         require(
-            weightSum == 1e18,
-            "Invalid weights sum"
+            weightSum == ONE,
+            "Sum of all weights is not equal to ONE (1e18)"
         );
 
         // Free storage to get gas refund
@@ -100,14 +116,14 @@ contract WeightedPoolFactory is IFactory {
             "Cannot register pool in vault, aborting pool creation"
         );
 
+        emit PoolCreated(poolAddress, tokens_, weights_, swapFee_, depositFee_, pools.length);
         pools.push(poolAddress);
         knownPools[poolAddress] = true;
-        emit PoolCreated(poolAddress, tokens_, weights_, swapFee_, depositFee_, pools.length);
     }
 
     function getPoolById(
         uint256 poolId
-    ) 
+    )
         external
         view
         override
