@@ -4,11 +4,9 @@
 
 pragma solidity 0.8.13;
 
-interface IWeightedPoolVault {
+interface IWeightedVault {
     function registerPool(
         address pool,
-        address[] memory tokens,
-        uint256[] memory weights,
-        uint256 swapFee
+        address[] memory tokens
     ) external returns (bool registerStatus);
 }

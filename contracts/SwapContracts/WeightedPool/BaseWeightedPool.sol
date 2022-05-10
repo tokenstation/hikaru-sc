@@ -5,43 +5,30 @@
 pragma solidity 0.8.13;
 
 import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
 import { FixedPoint } from "./utils/FixedPoint.sol";
 import { WeightedStorage } from "./utils/WeightedStorage.sol";
 
 abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
 
-    // TODO: Check other todo's
-    // DONE: add functions to change pool parameters (swap fees)
-    // DONE: hide weighted math usage + token transfers
-    // DONE: add base contract that holds all internal functions + modifiers
-    // TODO: add join/exit pool using one token
-    // TODO: add unified interface for exchange (probably will be added to vault)
-    // TODO: use same names for variables in contract
-    // TODO: refactor contract
-    // TODO: apply optimisations where possible and it does not obscure code
-    // TODO: check difference between immutable and default variable cost
-    // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
-
     event Swap(address tokenIn, address tokenOut, uint256 received, uint256 sent, address user);
     event Deposit(uint256 lpAmount, uint256[] received, address user);
     event Withdraw(uint256 lpAmount, uint256[] withdrawn, address user);
+    
+    event PoolManagerUpdate(address newPoolManager);
+    event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
 
 
     using FixedPoint for uint256;
 
     uint256 internal constant ONE = 1e18;
 
-    address public poolManager;
-
     uint256[] public balances;
-    
+
     uint256 public swapFee;
     uint256 public depositFee;
 
-    event PoolManagerUpdate(address newPoolManager);
-    event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
+    address public poolManager;
 
     function _setPoolFees(
         uint256 swapFee_,

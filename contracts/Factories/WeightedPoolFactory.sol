@@ -6,14 +6,16 @@ pragma solidity 0.8.13;
 
 import { WeightedPool } from "../SwapContracts/WeightedPool/WeightedPool.sol";
 import { IFactory } from "./interfaces/IFactory.sol";
-import { IWeightedPoolVault } from "../Vaults/interfaces/IWeightedVault.sol";
+import { IWeightedVault } from "../Vaults/interfaces/IWeightedVault.sol";
 
-// TODO: Add interface for default (fallback) swap that can be used in any pool
+// TODO: add functions for setting weightedVault
 
 
 contract WeightedPoolFactory is IFactory {
 
     uint256 constant public MAX_TOKENS = 20;
+
+    IWeightedVault public weightedVault;
 
     event PoolCreated(
         address indexed poolAddress,
@@ -24,8 +26,8 @@ contract WeightedPoolFactory is IFactory {
         uint256 indexed poolId
     );
 
-    string constant public basePoolsName = "WeightedPool";
     string constant public version = "v1";
+    string constant public basePoolsName = "WeightedPool";
     uint256 constant internal ONE = 1e18;
 
     address[] public pools;
@@ -107,11 +109,9 @@ contract WeightedPoolFactory is IFactory {
         );
 
         require(
-            IWeightedPoolVault(address(1)).registerPool(
+            weightedVault.registerPool(
                 poolAddress,
-                tokens_,
-                weights_,
-                swapFee_
+                tokens_
             ),
             "Cannot register pool in vault, aborting pool creation"
         );

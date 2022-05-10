@@ -26,18 +26,4 @@ interface IVault {
         address tokenOut,
         uint256 swapAmount
     ) external view returns (uint256 swapResult, uint256 feeAmount);
-
-    // ????
-    function provideTokens(
-        address pool,
-        uint256[] calldata tokenAmounts,
-        uint64 deadline
-    ) external returns (uint256 lpAmount);
-
-    // ????
-    function withdrawTokens(
-        address pool,
-        uint256 lpAmount,
-        uint64 deadline
-    ) external returns (uint256[] memory receivedTokens);
 }

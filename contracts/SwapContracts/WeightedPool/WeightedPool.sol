@@ -6,21 +6,22 @@ pragma solidity 0.8.13;
 
 import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import { IWeightedPool } from "./interfaces/IWeightedPool.sol";
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
 import { WeightedStorage } from "./utils/WeightedStorage.sol";
-
 import {BaseWeightedPool} from "./BaseWeightedPool.sol";
 
-contract WeightedPool is BaseWeightedPool {
+contract WeightedPool is IWeightedPool, BaseWeightedPool {
 
     // TODO: Check other todo's
     // DONE: add functions to change pool parameters (swap fees)
-    // DONE: hide weighted math usage + token transfers
+    // TODO: hide weighted math usage + token transfers
     // DONE: add base contract that holds all internal functions + modifiers
     // TODO: add join/exit pool using one token
     // TODO: add unified interface for exchange (probably will be added to vault)
     // DONE: use same names for variables in contract
     // TODO: refactor contract
+    // TODO: add documentation
     // TODO: apply optimisations where possible and it does not obscure code
     // DONE: check difference between immutable and default variable cost
     // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
@@ -54,6 +55,7 @@ contract WeightedPool is BaseWeightedPool {
         uint64 deadline
     ) 
         external
+        override
         checkDeadline(deadline)
         checkTokens(tokenIn, tokenOut)
         returns (uint256 amountOut)
@@ -89,6 +91,7 @@ contract WeightedPool is BaseWeightedPool {
         uint64 deadline
     )
         external
+        override
         checkDeadline(deadline)
         checkTokens(tokenIn, tokenOut)
         returns (uint256 amountIn)
@@ -125,6 +128,7 @@ contract WeightedPool is BaseWeightedPool {
         uint64 deadline
     )
         external
+        override
         checkDeadline(deadline)
         returns(uint256 lpAmount)
     {
@@ -164,6 +168,7 @@ contract WeightedPool is BaseWeightedPool {
         uint64 deadline
     )
         external
+        override
         checkDeadline(deadline)
         returns (uint256[] memory tokensReceived)
     {
@@ -201,6 +206,7 @@ contract WeightedPool is BaseWeightedPool {
         bool exactIn
     )
         external
+        override
         view
         checkTokens(tokenIn, tokenOut)
         returns(uint256 swapResult, uint256 fee)
@@ -225,6 +231,7 @@ contract WeightedPool is BaseWeightedPool {
         uint256[] calldata amountsIn
     )
         external
+        override
         view
         returns (uint256 lpAmount)
     {
@@ -241,6 +248,7 @@ contract WeightedPool is BaseWeightedPool {
         uint256 lpAmount
     )
         external
+        override
         view
         returns (uint256[] memory tokensReceived)
     {
