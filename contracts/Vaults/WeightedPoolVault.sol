@@ -9,17 +9,18 @@ import { IFactory } from "../Factories/interfaces/IFactory.sol";
 import { IVault } from "./interfaces/IVault.sol";
 import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
+import { SingleManager } from "../utils/SingleManager.sol";
 
-contract WeightedPoolVault is IVault, IWeightedVault {
+contract WeightedPoolVault is IVault, IWeightedVault, SingleManager {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
-    address public vaultManager;
     IFactory public weightedPoolFactory;
 
     constructor(
         address weightedPoolFactory_
-    ) {
-        vaultManager = msg.sender;
+    )
+        SingleManager(msg.sender) 
+    {
         weightedPoolFactory = IFactory(weightedPoolFactory_);
     }
 
@@ -110,6 +111,15 @@ contract WeightedPoolVault is IVault, IWeightedVault {
             IERC20(tokens[tokenId]).approve(pool, MAX_UINT);
         }
         return true;
+    }
+
+    function setFactoryAddress(
+        address factoryAddress
+    )
+        external
+        onlyManager
+    {
+        weightedPoolFactory = IFactory(factoryAddress);
     }
 
     modifier poolOfCorrectType(address poolAddress) {

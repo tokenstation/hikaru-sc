@@ -9,9 +9,11 @@ import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC
 import { IWeightedPool } from "./interfaces/IWeightedPool.sol";
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
 import { WeightedStorage } from "./utils/WeightedStorage.sol";
-import {BaseWeightedPool} from "./BaseWeightedPool.sol";
+import { BaseWeightedPool } from "./BaseWeightedPool.sol";
 
-contract WeightedPool is IWeightedPool, BaseWeightedPool {
+import { SingleManager } from "../../utils/SingleManager.sol";
+
+contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
     // TODO: Check other todo's
     // DONE: add functions to change pool parameters (swap fees)
@@ -37,9 +39,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool {
     ) 
         WeightedStorage(tokens_, weights_)
         ERC20(name, symbol)
+        SingleManager(msg.sender)
     {
-        _setPoolManager(poolManager_);
-
         _setPoolFees(swapFee_, depositFee_);
     }
 
@@ -157,7 +158,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool {
                 amounts_[tokenId],
                 true
             );
-            _changeBalance(tokens[tokenId], amounts_[tokenId], false);
+            _changeBalance(tokens[tokenId], amounts_[tokenId], true);
         }
 
         emit Deposit(lpAmount, amounts_, msg.sender);
@@ -189,7 +190,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool {
                 tokensReceived[tokenId],
                 false
             );
-            _changeBalance(tokens[tokenId], tokensReceived[tokenId], true);
+            _changeBalance(tokens[tokenId], tokensReceived[tokenId], false);
         }
 
         emit Withdraw(lpAmount, tokensReceived, msg.sender);
@@ -268,17 +269,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool {
         uint256 depositFee_
     )
         external
-        onlyPoolManager(msg.sender)
+        onlyManager
     {
         _setPoolFees(swapFee_, depositFee_);
-    }
-
-    function setPoolManager(
-        address poolManager_
-    )
-        external
-        onlyPoolManager(msg.sender)
-    {
-        _setPoolManager(poolManager_);
     }
 }   

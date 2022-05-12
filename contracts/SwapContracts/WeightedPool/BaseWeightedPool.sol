@@ -15,7 +15,6 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     event Deposit(uint256 lpAmount, uint256[] received, address user);
     event Withdraw(uint256 lpAmount, uint256[] withdrawn, address user);
     
-    event PoolManagerUpdate(address newPoolManager);
     event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
 
 
@@ -28,8 +27,6 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     uint256 public swapFee;
     uint256 public depositFee;
 
-    address public poolManager;
-
     function _setPoolFees(
         uint256 swapFee_,
         uint256 depositFee_
@@ -39,15 +36,6 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         swapFee = swapFee_;
         depositFee = depositFee_;
         emit FeesUpdate(swapFee_, depositFee_);
-    }
-
-    function _setPoolManager(
-        address poolManager_
-    )
-        internal
-    {
-        poolManager = poolManager_;
-        emit PoolManagerUpdate(poolManager_);
     }
 
     // TODO: remove function
@@ -163,14 +151,6 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         require(
             block.timestamp <= deadline,
             "Cannot swap, deadline passed"
-        );
-        _;
-    }
-
-    modifier onlyPoolManager(address user) {
-        require(
-            msg.sender == user,
-            "Only pool manager can call this function"
         );
         _;
     }
