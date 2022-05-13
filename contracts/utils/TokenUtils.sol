@@ -2,22 +2,52 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-import {IERC20, IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 pragma solidity 0.8.13;
 
 library TokenUtils {
-    function getTokenDecimals(address token) internal view returns(uint8) {
-        return IERC20Metadata(token).decimals();
+    function transferFromUser(
+        IERC20 tokenIn,
+        uint256 amountIn,
+        address user
+    ) 
+        internal
+    {
+        IERC20 tokenContract = IERC20(tokenIn);
+        uint256 balanceBefore = tokenContract.balanceOf(address(this));
+        tokenContract.transferFrom(user, address(this), amountIn);
+        uint256 balanceAfter = tokenContract.balanceOf(address(this));
+        _checkIfTransferOk(
+            balanceAfter - balanceBefore == amountIn
+        );
     }
 
-    function transferAndGetBalanceDelta(address token, address from, uint256 amount) internal returns(uint256 balanceDelta) {
-        balanceDelta = IERC20(token).balanceOf(address(this));
-        IERC20(token).transferFrom(from, address(this), amount);
-        balanceDelta = IERC20(token).balanceOf(address(this)) - balanceDelta;
+    function transferToUser(
+        IERC20 tokenOut,
+        uint256 amountOut,
+        address user
+    )
+        internal
+    {
+        IERC20 tokenContract = IERC20(tokenOut);
+        uint256 balanceBefore = tokenContract.balanceOf(address(this));
+        tokenContract.transfer(user, amountOut);
+        uint256 balanceAfter = tokenContract.balanceOf(address(this));
+        _checkIfTransferOk(
+            balanceBefore - balanceAfter == amountOut
+        );
     }
 
-    function transferTokens(address token, address to, uint256 amount) internal {
-        IERC20(token).transfer(to, amount);
+    function _checkIfTransferOk(
+        bool transferResult
+    ) 
+        internal
+        pure
+    {
+        require(
+            transferResult,
+            "Invalid amount of tokens "
+        );
     }
 }

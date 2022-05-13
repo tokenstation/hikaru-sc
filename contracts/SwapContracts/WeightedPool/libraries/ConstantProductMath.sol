@@ -14,8 +14,8 @@
 
 pragma solidity 0.8.13;
 
-import "../utils/FixedPoint.sol";
-import "../utils/Math.sol";
+import "../../../utils/Math/Math.sol";
+import { FixedPoint } from "../../../utils/Math/FixedPoint.sol";
 
 // These functions start with an underscore, as if they were part of a contract and not a library. At some point this
 // should be fixed.
