@@ -9,6 +9,9 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract InternalStorage {
     address constant ZERO_ADDRESS = address(0);
 
+    address public immutable factoryAddress;
+    address public immutable vaultAddress; 
+
     uint256 immutable public N_TOKENS;
 
     address internal immutable token1;
@@ -75,9 +78,14 @@ contract InternalStorage {
     uint256 internal immutable multiplier20;
 
     constructor(
+        address factoryAddress_,
+        address vaultAddress_,
         address[] memory tokens,
         uint256[] memory weights
     ) {
+        factoryAddress = factoryAddress_;
+        vaultAddress = vaultAddress_;
+        
         N_TOKENS = tokens.length;
     
         token1  = tokens[0];

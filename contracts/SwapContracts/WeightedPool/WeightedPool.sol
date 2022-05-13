@@ -8,7 +8,7 @@ import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC
 
 import { IWeightedPool } from "./interfaces/IWeightedPool.sol";
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
-import { WeightedStorage } from "./utils/WeightedStorage.sol";
+import { WeightedStorage } from "./WeightedStorage.sol";
 import { BaseWeightedPool } from "./BaseWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
 
@@ -38,7 +38,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         string memory name,
         string memory symbol
     ) 
-        WeightedStorage(tokens_, weights_)
+        WeightedStorage(msg.sender, vault, tokens_, weights_)
         ERC20(name, symbol)
         SingleManager(msg.sender)
     {
@@ -71,12 +71,6 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             amountOut >= minAmountOut,
             "Not enough tokens received"
         );
-        _transferSwapTokens(
-            tokenIn,
-            amountIn,
-            tokenOut,
-            amountOut
-        );
         _postSwap(
             tokenIn,
             amountIn,
@@ -107,12 +101,6 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             amountIn <= maxAmountIn,
             "Too much tokens is used for swap"
         );
-        _transferSwapTokens(
-            tokenIn,
-            amountIn,
-            tokenOut,
-            amountOut
-        );
         _postSwap(
             tokenIn,
             amountIn,
@@ -138,6 +126,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             amounts_.length == N_TOKENS,
             "Invalid array size"
         );
+
         uint256[] memory swapFees;
         (lpAmount, swapFees) = WeightedMath._calcBptOutGivenExactTokensIn(
             balances, 
@@ -152,17 +141,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         address[] memory tokens = getTokens();
 
         for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
-            _transferAndCheckBalances(
-                tokens[tokenId],
-                msg.sender,
-                address(this),
-                amounts_[tokenId],
-                true
-            );
             _changeBalance(tokens[tokenId], amounts_[tokenId], true);
         }
-
-        emit Deposit(lpAmount, amounts_, msg.sender);
     }
 
     function exitPool(
@@ -184,17 +164,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
         address[] memory tokens = getTokens();
         for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
-            _transferAndCheckBalances(
-                tokens[tokenId],
-                address(this),
-                msg.sender,
-                tokensReceived[tokenId],
-                false
-            );
             _changeBalance(tokens[tokenId], tokensReceived[tokenId], false);
         }
-
-        emit Withdraw(lpAmount, tokensReceived, msg.sender);
     }
 
     /*************************************************

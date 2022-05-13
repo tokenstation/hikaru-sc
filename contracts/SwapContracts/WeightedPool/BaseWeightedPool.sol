@@ -5,18 +5,14 @@
 pragma solidity 0.8.13;
 
 import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IWeightedPoolLP } from "./interfaces/IWeightedPoolLP.sol";
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
-import { FixedPoint } from "./utils/FixedPoint.sol";
-import { WeightedStorage } from "./utils/WeightedStorage.sol";
+import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
+import { WeightedStorage } from "./WeightedStorage.sol";
 
-abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
-
-    event Swap(address tokenIn, address tokenOut, uint256 received, uint256 sent, address user);
-    event Deposit(uint256 lpAmount, uint256[] received, address user);
-    event Withdraw(uint256 lpAmount, uint256[] withdrawn, address user);
+abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
     
     event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
-
 
     using FixedPoint for uint256;
 
@@ -38,7 +34,6 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         emit FeesUpdate(swapFee_, depositFee_);
     }
 
-    // TODO: remove function
     function normalizedBalance(
         address token
     )
@@ -46,7 +41,7 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         view
         returns (uint256 normalizedBalance_)
     {
-        normalizedBalance_ = balances[getTokenId(token)] * getMultiplier(token);
+        normalizedBalance_ = balances[_getTokenId(token)] * _getMultiplier(token);
     }
 
     function denormalizeAmount(
@@ -57,7 +52,7 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         view
         returns (uint256 denormalizedAmount)
     {
-        denormalizedAmount = amount / getMultiplier(token);
+        denormalizedAmount = amount / _getMultiplier(token);
     }
 
     function _calculateOutGivenIn(
@@ -71,9 +66,9 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     {
         swapResult = WeightedMath._calcOutGivenIn(
             normalizedBalance(tokenIn), 
-            getWeight(tokenIn), 
+            _getWeight(tokenIn), 
             normalizedBalance(tokenOut),
-            getWeight(tokenOut), 
+            _getWeight(tokenOut), 
             amountIn
         );
 
@@ -95,38 +90,14 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     {
         uint256 amountInWithoutFee = WeightedMath._calcInGivenOut(
             normalizedBalance(tokenIn), 
-            getWeight(tokenIn), 
+            _getWeight(tokenIn), 
             normalizedBalance(tokenOut), 
-            getWeight(tokenOut), 
+            _getWeight(tokenOut), 
             amountOut
         );
 
         amountIn = amountInWithoutFee.divDown(ONE - swapFee);
         fees = amountIn - amountInWithoutFee;
-    }
-
-    function _transferSwapTokens(
-        address tokenIn,
-        uint256 amountIn,
-        address tokenOut,
-        uint256 amountOut
-    )
-        internal
-    {
-        _transferAndCheckBalances(
-            tokenIn,
-            msg.sender,
-            address(this),
-            amountIn,
-            true
-        );
-        _transferAndCheckBalances(
-            tokenOut,
-            address(this),
-            msg.sender,
-            amountOut,
-            false
-        );
     }
 
     function _postSwap(
@@ -139,8 +110,6 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     {
         _changeBalance(tokenIn, amountIn, true);
         _changeBalance(tokenOut, amountOut, false);
-
-        emit Swap(tokenIn, tokenOut, amountIn, amountOut, msg.sender);
     }
 
     /*************************************************
@@ -161,11 +130,11 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
             "Cannot swap token to itself!"
         );
         require(
-            getTokenId(tokenIn) >= 0,
+            _getTokenId(tokenIn) >= 0,
             "Token in is not presented in pool."
         );
         require(
-            getTokenId(tokenOut) >= 0,
+            _getTokenId(tokenOut) >= 0,
             "Token out is not presented in pool."
         );
         _;
@@ -180,43 +149,33 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         uint256 amount,
         bool positive
     ) internal {
-        uint256 tokenId = getTokenId(token);
+        uint256 tokenId = _getTokenId(token);
         balances[tokenId] = positive ? balances[tokenId] + amount : balances[tokenId] - amount;
     }
 
-    function _transferAndCheckBalances(
-        address token,
-        address from,
-        address to,
-        uint256 amount,
-        bool transferFrom_
-    ) 
-        internal  
-        returns (uint256 transferred)
-    {
-        if (amount == 0) return 0;
+    /*************************************************
+                      ERC20 external functions
+     *************************************************/
 
-        uint256 balanceIn = IERC20(token).balanceOf(to);
-        if (transferFrom_) {
-            IERC20(token).transfer(to, amount);
-        } else {
-            IERC20(token).transferFrom(from, to, amount);
-        }
-        uint256 balanceOut = IERC20(token).balanceOf(to);
-        transferred = balanceOut - balanceIn;
-        _checkTransferResult(amount, transferred);
+    function mint(
+        address user,
+        uint256 amount
+    )
+        external
+        override
+        onlyVault(msg.sender)
+    {
+        _mint(user, amount);
     }
 
-    function _checkTransferResult(
-        uint256 expected,
-        uint256 transferred
+    function burn(
+        address user,
+        uint256 amount
     )
-        internal
-        pure
+        external
+        override
+        onlyVault(msg.sender)
     {
-        require(
-            expected == transferred,
-            "Tokens with transfer fees are not supported in this pool"
-        );
+        _burn(user, amount);
     }
 }   

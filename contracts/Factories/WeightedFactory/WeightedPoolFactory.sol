@@ -4,9 +4,9 @@
 
 pragma solidity 0.8.13;
 
-import { WeightedPool } from "../SwapContracts/WeightedPool/WeightedPool.sol";
-import { IFactory } from "./interfaces/IFactory.sol";
-import { IWeightedVault } from "../Vaults/interfaces/IWeightedVault.sol";
+import { IFactory } from "../interfaces/IFactory.sol";
+import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol";
+import { IWeightedVault } from "../../Vaults/WeightedPool/interfaces/IWeightedVault.sol";
 
 // TODO: add functions for setting weightedVault
 

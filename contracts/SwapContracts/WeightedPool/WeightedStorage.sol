@@ -4,14 +4,18 @@
 
 pragma solidity 0.8.13;
 
-import { InternalStorage } from "./InternalWeightedStorage.sol";
-import { IWeightedStorage } from "../interfaces/IWeightedStorage.sol";
+import { InternalStorage } from "./utils/InternalWeightedStorage.sol";
+import { IWeightedStorage } from "./interfaces/IWeightedStorage.sol";
 
 contract WeightedStorage is InternalStorage, IWeightedStorage {
     constructor(
+        address factoryAddress_,
+        address vaultAddress_,
         address[] memory tokens,
         uint256[] memory weights
-    ) InternalStorage(tokens, weights) {
+    ) 
+        InternalStorage(factoryAddress_, vaultAddress_, tokens, weights)
+    {
         // Empty
     }
 
@@ -180,5 +184,21 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (N_TOKENS >= 17) multipliers[17] = multiplier18;
         if (N_TOKENS >= 18) multipliers[18] = multiplier19;
         if (N_TOKENS >= 19) multipliers[19] = multiplier20;
+    }
+
+    modifier onlyVault(address caller) {
+        require(
+            caller == vaultAddress,
+            "This function can only be accessed via vault"
+        );
+        _;
+    }
+
+    modifier onlyFactory(address caller) {
+        require(
+            caller == factoryAddress,
+            "This function can only be accessed via factory"
+        );
+        _;
     }
 }

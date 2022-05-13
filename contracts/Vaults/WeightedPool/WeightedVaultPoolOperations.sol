@@ -6,35 +6,24 @@ pragma solidity 0.8.13;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IWeightedVaultSwaps } from "./interfaces/IWeightedVault.sol";
-import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
-import { IFactory } from "../../Factories/interfaces/IFactory.sol";
 import { TokenUtils } from "../../utils/TokenUtils.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
+import { IWeightedPoolLP } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPoolLP.sol";
+import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
+import { WeightedVaultStorage } from "./WeightedVaultStorage.sol";
 
-contract WeightedVaultStorage {
-    mapping (address => uint256) balances;
-    IFactory public weightedPoolFactory;
 
-    modifier registeredPool(address poolAddress) {
-        require(
-            weightedPoolFactory.checkPoolAddress(poolAddress),
-            "Pool is not registered in factory"
-        );
-        _;
-    }
+contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwaps {
 
-    modifier onlyFactory() {
-        require(
-            msg.sender == address(weightedPoolFactory),
-            "Function can only be called by factory"
-        );
-        _;
-    }
-}
-
-contract WeightedVaultSwaps is WeightedVaultStorage, IWeightedVaultSwaps {
+    event Swap(address pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address user);
+    event Deposit(address pool, uint256 lpAmount, uint256[] tokensDeposited, address user);
+    event Withdraw(address pool, uint256 lpAmount, uint256[] tokensReceived, address user);
 
     using TokenUtils for IERC20;
+
+    /*************************************************
+                    Real functions
+     *************************************************/
 
     function swap(
         address pool,
@@ -49,7 +38,8 @@ contract WeightedVaultSwaps is WeightedVaultStorage, IWeightedVaultSwaps {
         returns (uint256 amountOut) 
     {
         amountOut = IWeightedPool(pool).swap(tokenIn, tokenOut, amountIn, minAmountOut, deadline);
-        _transferSwapTokens(tokenIn, amountIn, tokenOut, amountOut);
+        _transferSwapTokens(tokenIn, amountIn, tokenOut, amountOut, msg.sender);
+        _postSwap(pool, tokenIn, amountIn, tokenOut, amountOut, msg.sender);
     }
 
     function swapExactOut(
@@ -65,7 +55,8 @@ contract WeightedVaultSwaps is WeightedVaultStorage, IWeightedVaultSwaps {
         returns (uint256 amountIn)
     {
         amountIn = IWeightedPool(pool).swapExactOut(tokenIn, tokenOut, amountOut, maxAmountIn, deadline);
-        _transferSwapTokens(tokenIn, amountIn, tokenOut, amountOut);
+        _transferSwapTokens(tokenIn, amountIn, tokenOut, amountOut, msg.sender);
+        _postSwap(pool, tokenIn, amountIn, tokenOut, amountOut, msg.sender);
     }
 
     function joinPool(
@@ -79,6 +70,7 @@ contract WeightedVaultSwaps is WeightedVaultStorage, IWeightedVaultSwaps {
     {
         lpAmount = IWeightedPool(pool).joinPool(amounts_, deadline);
         _transferTokensFrom(IWeightedStorage(pool).getTokens(), amounts_, msg.sender);
+        _postLpUpdate(pool, lpAmount, amounts_, msg.sender, true);
     }
 
     function exitPool(
@@ -92,7 +84,12 @@ contract WeightedVaultSwaps is WeightedVaultStorage, IWeightedVaultSwaps {
     {
         tokensReceived = IWeightedPool(pool).exitPool(lpAmount, deadline);
         _transferTokensTo(IWeightedStorage(pool).getTokens(), tokensReceived, msg.sender);
+        _postLpUpdate(pool, lpAmount, tokensReceived, msg.sender, true);
     }
+
+    /*************************************************
+                    Dry run functions
+     *************************************************/
 
     function calculateSwap(
         address pool,
@@ -133,6 +130,41 @@ contract WeightedVaultSwaps is WeightedVaultStorage, IWeightedVaultSwaps {
         tokensReceived = IWeightedPool(pool).calculateExit(lpAmount);
     }
 
+    /*************************************************
+                    Utility functions
+     *************************************************/
+
+    function _postSwap(
+        address pool,
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 amountOut,
+        address user
+    )
+        internal
+    {
+        emit Swap(pool, tokenIn, tokenOut, amountIn, amountOut, user);
+    }
+
+    function _postLpUpdate(
+        address pool,
+        uint256 lpAmount,
+        uint256[] memory tokenAmounts,
+        address user,
+        bool enterPool
+    )
+        internal
+    {
+        if (enterPool) {
+            IWeightedPoolLP(pool).mint(user, lpAmount);
+            emit Deposit(pool, lpAmount, tokenAmounts, user);
+        } else {
+            IWeightedPoolLP(pool).burn(user, lpAmount);
+            emit Withdraw(pool, lpAmount, tokenAmounts, user);
+        }
+    }
+
     function _transferTokensFrom(
         address[] memory tokens,
         uint256[] memory amounts,
@@ -162,13 +194,14 @@ contract WeightedVaultSwaps is WeightedVaultStorage, IWeightedVaultSwaps {
         address tokenIn, 
         uint256 amountIn, 
         address tokenOut, 
-        uint256 amountOut
+        uint256 amountOut,
+        address user
     ) 
         internal
 
     {
-        IERC20(tokenIn).transferFromUser(amountIn, msg.sender);
-        IERC20(tokenOut).transferToUser(amountOut, msg.sender);
+        IERC20(tokenIn).transferFromUser(amountIn, user);
+        IERC20(tokenOut).transferToUser(amountOut, user);
     }
 
 }

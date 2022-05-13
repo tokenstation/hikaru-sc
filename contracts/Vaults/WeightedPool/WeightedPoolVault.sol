@@ -6,15 +6,15 @@ pragma solidity 0.8.13;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IFactory } from "../../Factories/interfaces/IFactory.sol";
-import { IVault } from "./interfaces/IVault.sol";
-import { IWeightedVault, IWeightedVaultSwaps } from "./interfaces/IWeightedVault.sol";
+import { IVault } from "../interfaces/IVault.sol";
+import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
+import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 
-contract WeightedPoolVault is IVault, IWeightedVault, SingleManager {
+contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
-    IFactory public weightedPoolFactory;
     mapping (address => uint256) public tokenBalances;
 
     constructor(
