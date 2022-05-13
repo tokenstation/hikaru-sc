@@ -4,9 +4,10 @@
 
 pragma solidity 0.8.13;
 
-import {InternalStorage} from "./InternalWeightedStorage.sol";
+import { InternalStorage } from "./InternalWeightedStorage.sol";
+import { IWeightedStorage } from "../interfaces/IWeightedStorage.sol";
 
-contract WeightedStorage is InternalStorage {
+contract WeightedStorage is InternalStorage, IWeightedStorage {
     constructor(
         address[] memory tokens,
         uint256[] memory weights
@@ -18,7 +19,11 @@ contract WeightedStorage is InternalStorage {
         revert("Unknown token");
     }
 
-    function getTokenId(address token) public view returns (uint256) {
+    function getTokenId(address token) external override view returns (uint256 tokenId) {
+        return _getTokenId(token);
+    }
+
+    function _getTokenId(address token) internal view returns (uint256) {
         if (token == token1 ) return 0 ;
         if (token == token2 ) return 1 ;
         if (token == token3 ) return 2 ;
@@ -42,7 +47,10 @@ contract WeightedStorage is InternalStorage {
         failAndRevert();
     }
 
-    function getWeight(address token) public view returns (uint256) {
+    function getWeight(address token) external override view returns (uint256) {
+        return _getWeight(token);
+    }
+    function _getWeight(address token) internal view returns (uint256) {
         if (token == token1 ) return weight1 ;
         if (token == token2 ) return weight2 ;
         if (token == token3 ) return weight3 ;
@@ -66,8 +74,10 @@ contract WeightedStorage is InternalStorage {
         failAndRevert();
     }
 
-
-    function getMultiplier(address token) public view returns (uint256) {
+    function getMultiplier(address token) external override view returns (uint256) {
+        return _getMultiplier(token);
+    }
+    function _getMultiplier(address token) internal view returns (uint256) {
         if (token == token1 ) return multiplier1 ;
         if (token == token2 ) return multiplier2 ;
         if (token == token3 ) return multiplier3 ;
@@ -91,7 +101,10 @@ contract WeightedStorage is InternalStorage {
         failAndRevert();
     }
 
-    function getTokens() public view returns (address[] memory tokens) {
+    function getTokens() external override view returns (address[] memory tokens) {
+        tokens = _getTokens();
+    }
+    function _getTokens() internal view returns (address[] memory tokens) {
         tokens = new address[](N_TOKENS);
         if (N_TOKENS >= 0 ) tokens[0 ] = token1 ;
         if (N_TOKENS >= 1 ) tokens[1 ] = token2 ;
@@ -115,7 +128,10 @@ contract WeightedStorage is InternalStorage {
         if (N_TOKENS >= 19) tokens[19] = token20;
     }
 
-    function getWeights() public view returns (uint256[] memory weights) {
+    function getWeights() external override view returns (uint256[] memory weights) {
+        weights = _getWeights();
+    }
+    function _getWeights() internal view returns (uint256[] memory weights) {
         weights = new uint256[](N_TOKENS);
         if (N_TOKENS >= 0 ) weights[0 ] = weight1 ;
         if (N_TOKENS >= 1 ) weights[1 ] = weight2 ;
@@ -139,7 +155,10 @@ contract WeightedStorage is InternalStorage {
         if (N_TOKENS >= 19) weights[19] = weight20;
     }
 
-    function getMultipliers() public view returns (uint256[] memory multipliers) {
+    function getMultipliers() external override view returns (uint256[] memory multipliers) {
+        multipliers = _getMultipliers();
+    }
+    function _getMultipliers() internal view returns (uint256[] memory multipliers) {
         multipliers = new uint256[](N_TOKENS);
         if (N_TOKENS >= 0 ) multipliers[0 ] = multiplier1 ;
         if (N_TOKENS >= 1 ) multipliers[1 ] = multiplier2 ;

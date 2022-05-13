@@ -5,16 +5,17 @@
 pragma solidity 0.8.13;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { IFactory } from "../Factories/interfaces/IFactory.sol";
+import { IFactory } from "../../Factories/interfaces/IFactory.sol";
 import { IVault } from "./interfaces/IVault.sol";
-import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
-import { IWeightedPool } from "../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
-import { SingleManager } from "../utils/SingleManager.sol";
+import { IWeightedVault, IWeightedVaultSwaps } from "./interfaces/IWeightedVault.sol";
+import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
+import { SingleManager } from "../../utils/SingleManager.sol";
 
 contract WeightedPoolVault is IVault, IWeightedVault, SingleManager {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     IFactory public weightedPoolFactory;
+    mapping (address => uint256) public tokenBalances;
 
     constructor(
         address weightedPoolFactory_
@@ -111,6 +112,35 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager {
             IERC20(tokens[tokenId]).approve(pool, MAX_UINT);
         }
         return true;
+    }
+
+     function transferFromUser(
+        address token,
+        address user,
+        address amount
+    ) 
+        external 
+        override
+        poolOfCorrectType(msg.sender)
+        returns (bool status) 
+    {
+        IERC20 tokenContract = IERC20(token);
+        uint256 balanceBefore = tokenContract.balanceOf(address(this));
+        tokenContract.transferFrom(user, address(this), amount);
+        uint256 balanceAfter = tokenContract.balanceOf(address(this));
+        return (balanceAfter - balanceBefore) == amount;
+    }
+
+    function transferToUser(
+        address token,
+        address amount
+    ) 
+        external 
+        override
+        poolOfCorrectType(msg.sender)
+        returns (bool status)
+    {
+
     }
 
     function setFactoryAddress(

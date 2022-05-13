@@ -10,12 +10,12 @@ import { IWeightedPool } from "./interfaces/IWeightedPool.sol";
 import { WeightedMath } from "./libraries/ConstantProductMath.sol";
 import { WeightedStorage } from "./utils/WeightedStorage.sol";
 import { BaseWeightedPool } from "./BaseWeightedPool.sol";
-
 import { SingleManager } from "../../utils/SingleManager.sol";
 
 contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
     // TODO: Check other todo's
+    // TODO: vault must store tokens of pools
     // DONE: add functions to change pool parameters (swap fees)
     // TODO: hide weighted math usage + token transfers
     // DONE: add base contract that holds all internal functions + modifiers
@@ -29,6 +29,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
 
     constructor(
+        address vault,
         address poolManager_,
         address[] memory tokens_,
         uint256[] memory weights_,
