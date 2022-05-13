@@ -36,8 +36,9 @@ contract SingleManager {
 
     modifier onlyManager() {
         require(
-            msg.sender == manager_,
+            msg.sender == manager,
             "Only manager can execute this function."
         );
+        _;
     }
 }

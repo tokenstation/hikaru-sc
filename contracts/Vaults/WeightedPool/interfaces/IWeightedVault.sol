@@ -9,18 +9,6 @@ interface IWeightedVault {
         address pool,
         address[] memory tokens
     ) external returns (bool registerStatus);
-
-    function transferFromUser(
-        address pool,
-        address token,
-        address amount
-    ) external returns (bool status);
-
-    function transferToUser(
-        address pool,
-        address token,
-        address amount
-    ) external returns (bool status);
 }
 
 interface IWeightedVaultSwaps {

@@ -15,17 +15,12 @@ import { SingleManager } from "../../utils/SingleManager.sol";
 contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
     // TODO: Check other todo's
-    // TODO: vault must store tokens of pools
-    // DONE: add functions to change pool parameters (swap fees)
-    // TODO: hide weighted math usage + token transfers
-    // DONE: add base contract that holds all internal functions + modifiers
+    // TODO: Move ERC20 as LP to separate contract
     // TODO: add join/exit pool using one token
     // TODO: add unified interface for exchange (probably will be added to vault)
-    // DONE: use same names for variables in contract
     // TODO: refactor contract
     // TODO: add documentation
     // TODO: apply optimisations where possible and it does not obscure code
-    // DONE: check difference between immutable and default variable cost
     // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
 
     constructor(
@@ -40,7 +35,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     ) 
         WeightedStorage(msg.sender, vault, tokens_, weights_)
         ERC20(name, symbol)
-        SingleManager(msg.sender)
+        SingleManager(poolManager_)
     {
         _setPoolFees(swapFee_, depositFee_);
     }
@@ -130,7 +125,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         uint256[] memory swapFees;
         (lpAmount, swapFees) = WeightedMath._calcBptOutGivenExactTokensIn(
             balances, 
-            getMultipliers(), 
+            _getWeights(), 
             amounts_,
             totalSupply(),
             swapFee
@@ -138,7 +133,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
         _mint(msg.sender, lpAmount);
 
-        address[] memory tokens = getTokens();
+        address[] memory tokens = _getTokens();
 
         for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
             _changeBalance(tokens[tokenId], amounts_[tokenId], true);
@@ -162,7 +157,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
         _burn(msg.sender, lpAmount);
 
-        address[] memory tokens = getTokens();
+        address[] memory tokens = _getTokens();
         for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
             _changeBalance(tokens[tokenId], tokensReceived[tokenId], false);
         }
@@ -210,7 +205,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     {
         (lpAmount, ) = WeightedMath._calcBptOutGivenExactTokensIn(
             balances, 
-            getMultipliers(), 
+            _getWeights(), 
             amountsIn,
             totalSupply(),
             swapFee

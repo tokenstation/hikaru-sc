@@ -114,35 +114,6 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         return true;
     }
 
-     function transferFromUser(
-        address token,
-        address user,
-        address amount
-    ) 
-        external 
-        override
-        poolOfCorrectType(msg.sender)
-        returns (bool status) 
-    {
-        IERC20 tokenContract = IERC20(token);
-        uint256 balanceBefore = tokenContract.balanceOf(address(this));
-        tokenContract.transferFrom(user, address(this), amount);
-        uint256 balanceAfter = tokenContract.balanceOf(address(this));
-        return (balanceAfter - balanceBefore) == amount;
-    }
-
-    function transferToUser(
-        address token,
-        address amount
-    ) 
-        external 
-        override
-        poolOfCorrectType(msg.sender)
-        returns (bool status)
-    {
-
-    }
-
     function setFactoryAddress(
         address factoryAddress
     )
@@ -156,14 +127,6 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         require(
             weightedPoolFactory.checkPoolAddress(poolAddress),
             "Pool is not registered in factory"
-        );
-        _;
-    }
-
-    modifier onlyFactory() {
-        require(
-            msg.sender == address(weightedPoolFactory),
-            "Function can only be called by factory"
         );
         _;
     }
