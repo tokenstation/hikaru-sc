@@ -10,7 +10,7 @@ import { WeightedMath } from "./libraries/ConstantProductMath.sol";
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { WeightedStorage } from "./WeightedStorage.sol";
 
-abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
+abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage {
     
     event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
 
