@@ -157,10 +157,10 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         internal
     {
         if (enterPool) {
-            IWeightedPoolLP(pool).mint(user, lpAmount);
+            _mintTokensTo(pool, user, lpAmount);
             emit Deposit(pool, lpAmount, tokenAmounts, user);
         } else {
-            IWeightedPoolLP(pool).burn(user, lpAmount);
+            _burnTokensFrom(pool, user, lpAmount);
             emit Withdraw(pool, lpAmount, tokenAmounts, user);
         }
     }
