@@ -127,6 +127,7 @@ contract WeightedPoolFactory is IFactory {
         require(
             weightedVault.registerPool(
                 poolAddress,
+                lpTokenAddress,
                 tokens_
             ),
             "Cannot register pool in vault, aborting pool creation"

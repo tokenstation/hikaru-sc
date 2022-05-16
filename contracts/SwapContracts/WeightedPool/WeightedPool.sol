@@ -51,6 +51,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     ) 
         external
         override
+        onlyVault(msg.sender)
         checkDeadline(deadline)
         checkTokens(tokenIn, tokenOut)
         returns (uint256 amountOut)
@@ -81,6 +82,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     )
         external
         override
+        onlyVault(msg.sender)
         checkDeadline(deadline)
         checkTokens(tokenIn, tokenOut)
         returns (uint256 amountIn)
@@ -112,6 +114,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     )
         external
         override
+        onlyVault(msg.sender)
         checkDeadline(deadline)
         returns(uint256 lpAmount)
     {
@@ -138,6 +141,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     )
         external
         override
+        onlyVault(msg.sender)
         checkDeadline(deadline)
         returns (uint256[] memory tokensReceived)
     {

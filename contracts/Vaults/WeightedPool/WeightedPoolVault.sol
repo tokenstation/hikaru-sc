@@ -102,6 +102,7 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
 
     function registerPool(
         address pool,
+        address lpTokenAddress,
         address[] memory tokens
     ) 
         external 
@@ -109,6 +110,7 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         onlyFactory
         returns (bool registerStatus)
     {
+        _registerLPToken(pool, lpTokenAddress);
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             IERC20(tokens[tokenId]).approve(pool, MAX_UINT);
         }

@@ -7,6 +7,7 @@ pragma solidity 0.8.13;
 interface IWeightedVault {
     function registerPool(
         address pool,
+        address lpToken,
         address[] memory tokens
     ) external returns (bool registerStatus);
 }

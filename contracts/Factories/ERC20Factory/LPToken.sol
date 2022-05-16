@@ -7,7 +7,7 @@ pragma solidity 0.8.13;
 import { ILPERC20 } from "./interfaces/ILPToken.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract LPTokenStorage {
+contract LPVault {
     address public vaultAddress;
 
     constructor (
@@ -25,7 +25,7 @@ contract LPTokenStorage {
     }
 }
 
-contract LPTokenERC20 is LPTokenStorage, ERC20, ILPERC20 {
+contract LPTokenERC20 is LPVault, ERC20, ILPERC20 {
 
     constructor(
         address vaultAddress_,
@@ -33,7 +33,7 @@ contract LPTokenERC20 is LPTokenStorage, ERC20, ILPERC20 {
         string memory symbol_
     )
         ERC20(name_, symbol_)
-        LPTokenStorage(vaultAddress_)
+        LPVault(vaultAddress_)
     {
 
     }
