@@ -7,6 +7,7 @@ pragma solidity 0.8.13;
 import { IFactory } from "../interfaces/IFactory.sol";
 import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol";
 import { IWeightedVault } from "../../Vaults/WeightedPool/interfaces/IWeightedVault.sol";
+import { ILPTokenFactory } from "../ERC20Factory/interfaces/ILPTokenFactory.sol";
 
 // TODO: add functions for setting weightedVault
 
@@ -16,9 +17,11 @@ contract WeightedPoolFactory is IFactory {
     uint256 constant public MAX_TOKENS = 20;
 
     IWeightedVault public weightedVault;
+    ILPTokenFactory public lpTokenFactory;
 
     event PoolCreated(
         address indexed poolAddress,
+        address indexed lpTokenAddress,
         address[] tokens,
         uint256[] weights,
         uint256 swapFee,
@@ -43,7 +46,15 @@ contract WeightedPoolFactory is IFactory {
      */
     mapping(address => bool) internal uniqueTokens;
 
-    function crearePool(
+    constructor(
+        address weightedVault_,
+        address lpTokenFactory_
+    ) {
+        weightedVault = IWeightedVault(weightedVault_);
+        lpTokenFactory = ILPTokenFactory(lpTokenFactory_);
+    }
+
+    function createPool(
         address[] memory tokens_,
         uint256[] memory weights_,
         uint256 swapFee_,
@@ -98,14 +109,19 @@ contract WeightedPoolFactory is IFactory {
 
         poolAddress = address(
             new WeightedPool(
+                address(weightedVault),
                 msg.sender,
                 tokens_,
                 weights_,
                 swapFee_,
-                depositFee_,
-                lpName,
-                lpSymbol
+                depositFee_
             )
+        );
+
+        address lpTokenAddress = lpTokenFactory.createNewToken(
+            address(weightedVault), 
+            lpName, 
+            lpSymbol
         );
 
         require(
@@ -116,7 +132,7 @@ contract WeightedPoolFactory is IFactory {
             "Cannot register pool in vault, aborting pool creation"
         );
 
-        emit PoolCreated(poolAddress, tokens_, weights_, swapFee_, depositFee_, pools.length);
+        emit PoolCreated(poolAddress, lpTokenAddress, tokens_, weights_, swapFee_, depositFee_, pools.length);
         pools.push(poolAddress);
         knownPools[poolAddress] = true;
     }

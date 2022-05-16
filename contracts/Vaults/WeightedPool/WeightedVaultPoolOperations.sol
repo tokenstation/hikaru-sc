@@ -21,6 +21,15 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
 
     using TokenUtils for IERC20;
 
+    constructor(
+        address weightedPoolFactory_,
+        address lpTokenFactory_
+    ) 
+        WeightedVaultStorage(weightedPoolFactory_, lpTokenFactory_)
+    {
+
+    }
+
     /*************************************************
                     Real functions
      *************************************************/

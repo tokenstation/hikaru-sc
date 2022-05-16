@@ -5,6 +5,7 @@
 pragma solidity 0.8.13;
 
 import { IFactory } from "../../Factories/interfaces/IFactory.sol";
+import { ILPTokenFactory } from "../../Factories/ERC20Factory/interfaces/ILPTokenFactory.sol";
 import { ILPERC20 } from "../../Factories/ERC20Factory/interfaces/ILPToken.sol";
 
 contract WeightedVaultStorage {
@@ -12,6 +13,15 @@ contract WeightedVaultStorage {
     mapping (address => ILPERC20) lpTokens;
     mapping (address => uint256) balances;
     IFactory public weightedPoolFactory;
+    ILPTokenFactory public lpTokenFactory;
+
+    constructor(
+        address weightedPoolFactory_,
+        address lpTokenFactory_
+    ) {
+        weightedPoolFactory = IFactory(weightedPoolFactory_);
+        lpTokenFactory = ILPTokenFactory(lpTokenFactory_);
+    }
 
     function _registerLPToken(
         address pool,

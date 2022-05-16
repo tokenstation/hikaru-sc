@@ -18,11 +18,12 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
     mapping (address => uint256) public tokenBalances;
 
     constructor(
-        address weightedPoolFactory_
+        address weightedPoolFactory_,
+        address lpTokenFactory_
     )
-        SingleManager(msg.sender) 
+        WeightedVaultPoolOperations(weightedPoolFactory_, lpTokenFactory_)
+        SingleManager(msg.sender)
     {
-        weightedPoolFactory = IFactory(weightedPoolFactory_);
     }
 
     // Router uses transferFrom to get tokens from users, because
