@@ -29,15 +29,13 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         address[] memory tokens_,
         uint256[] memory weights_,
         uint256 swapFee_,
-        uint256 depositFee_,
-        string memory name,
-        string memory symbol
+        uint256 depositFee_
     ) 
         WeightedStorage(msg.sender, vault, tokens_, weights_)
-        ERC20(name, symbol)
+        BaseWeightedPool(swapFee_, depositFee_)
         SingleManager(poolManager_)
-    {
-        _setPoolFees(swapFee_, depositFee_);
+    { 
+
     }
 
     /*************************************************
@@ -109,7 +107,6 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
      *************************************************/
 
     function joinPool(
-        uint256 totalLP,
         uint256[] memory amounts_,
         uint64 deadline
     )
@@ -128,21 +125,14 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             balances, 
             _getWeights(), 
             amounts_,
-            totalLP,
+            lpBalance,
             swapFee
         );
 
-        _mint(msg.sender, lpAmount);
-
-        address[] memory tokens = _getTokens();
-
-        for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
-            _changeBalance(tokens[tokenId], amounts_[tokenId], true);
-        }
+        _postJoinExit(lpAmount, amounts_, true);
     }
 
     function exitPool(
-        uint256 totalLP,
         uint256 lpAmount,
         uint64 deadline
     )
@@ -154,15 +144,10 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         tokensReceived = WeightedMath._calcTokensOutGivenExactBptIn(
             balances,
             lpAmount,
-            totalLP
+            lpBalance
         );
 
-        _burn(msg.sender, lpAmount);
-
-        address[] memory tokens = _getTokens();
-        for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
-            _changeBalance(tokens[tokenId], tokensReceived[tokenId], false);
-        }
+        _postJoinExit(lpAmount, tokensReceived, false);
     }
 
     /*************************************************
@@ -198,7 +183,6 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     }
 
     function calculateJoin(
-        uint256 totalLP,
         uint256[] calldata amountsIn
     )
         external
@@ -210,13 +194,12 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             balances, 
             _getWeights(), 
             amountsIn,
-            totalLP,
+            lpBalance,
             swapFee
         );
     }
 
     function calculateExit(
-        uint256 totalLP,
         uint256 lpAmount
     )
         external
@@ -227,7 +210,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         tokensReceived = WeightedMath._calcTokensOutGivenExactBptIn(
             balances,
             lpAmount,
-            totalLP
+            lpBalance
         );
     }
 

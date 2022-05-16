@@ -10,7 +10,7 @@ import { WeightedMath } from "./libraries/ConstantProductMath.sol";
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { WeightedStorage } from "./WeightedStorage.sol";
 
-abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage {
+abstract contract BaseWeightedPool is WeightedStorage {
     
     event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
 
@@ -18,10 +18,19 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage {
 
     uint256 internal constant ONE = 1e18;
 
-    uint256[] public balances;
+    uint256 public lpBalance;
 
     uint256 public swapFee;
     uint256 public depositFee;
+
+    uint256[] public balances;
+
+    constructor(
+        uint256 swapFee_,
+        uint256 depositFee_
+    ) {
+        _setPoolFees(swapFee_, depositFee_);
+    }
 
     function _setPoolFees(
         uint256 swapFee_,
@@ -112,6 +121,21 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage {
         _changeBalance(tokenOut, amountOut, false);
     }
 
+    function _postJoinExit(
+        uint256 lpAmount,
+        uint256[] memory tokenDeltas,
+        bool join
+    )
+        internal
+    {
+        address[] memory tokens = _getTokens();
+        for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
+            _changeBalance(tokens[tokenId], tokenDeltas[tokenId], join);
+        }   
+
+        lpBalance = join ? lpBalance + lpAmount : lpBalance - lpAmount;
+    }
+
     /*************************************************
                        Modifiers
      *************************************************/
@@ -151,31 +175,5 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage {
     ) internal {
         uint256 tokenId = _getTokenId(token);
         balances[tokenId] = positive ? balances[tokenId] + amount : balances[tokenId] - amount;
-    }
-
-    /*************************************************
-                      ERC20 external functions
-     *************************************************/
-
-    function mint(
-        address user,
-        uint256 amount
-    )
-        external
-        override
-        onlyVault(msg.sender)
-    {
-        _mint(user, amount);
-    }
-
-    function burn(
-        address user,
-        uint256 amount
-    )
-        external
-        override
-        onlyVault(msg.sender)
-    {
-        _burn(user, amount);
     }
 }   
