@@ -9,15 +9,14 @@ import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol"
 import { IWeightedVault } from "../../Vaults/WeightedPool/interfaces/IWeightedVault.sol";
 import { ILPTokenFactory } from "../ERC20Factory/interfaces/ILPTokenFactory.sol";
 
-// TODO: add functions for setting weightedVault
-
+// TODO: Light up facttory
 
 contract WeightedPoolFactory is IFactory {
 
-    uint256 constant public MAX_TOKENS = 20;
+    uint256 constant internal MAX_TOKENS = 20;
 
-    IWeightedVault public weightedVault;
-    ILPTokenFactory public lpTokenFactory;
+    IWeightedVault internal weightedVault;
+    ILPTokenFactory internal lpTokenFactory;
 
     event PoolCreated(
         address indexed poolAddress,
@@ -25,16 +24,15 @@ contract WeightedPoolFactory is IFactory {
         address[] tokens,
         uint256[] weights,
         uint256 swapFee,
-        uint256 depositFee,
         uint256 indexed poolId
     );
 
-    string constant public version = "v1";
-    string constant public basePoolsName = "WeightedPool";
+    string constant internal version = "v1";
+    string constant internal basePoolsName = "WeightedPool";
     uint256 constant internal ONE = 1e18;
 
-    address[] public pools;
-    mapping(address => bool) public knownPools;
+    address[] internal pools;
+    mapping(address => bool) internal knownPools;
     /**
       Initial cost of writing non-zero value is 22100 gas
       When we restore previously written value to 0 (if storage slot previously had 0 value) 
@@ -58,7 +56,6 @@ contract WeightedPoolFactory is IFactory {
         address[] memory tokens_,
         uint256[] memory weights_,
         uint256 swapFee_,
-        uint256 depositFee_,
         string memory lpName,
         string memory lpSymbol
     )
@@ -113,8 +110,7 @@ contract WeightedPoolFactory is IFactory {
                 msg.sender,
                 tokens_,
                 weights_,
-                swapFee_,
-                depositFee_
+                swapFee_
             )
         );
 
@@ -133,7 +129,7 @@ contract WeightedPoolFactory is IFactory {
             "Cannot register pool in vault, aborting pool creation"
         );
 
-        emit PoolCreated(poolAddress, lpTokenAddress, tokens_, weights_, swapFee_, depositFee_, pools.length);
+        emit PoolCreated(poolAddress, lpTokenAddress, tokens_, weights_, swapFee_, pools.length);
         pools.push(poolAddress);
         knownPools[poolAddress] = true;
     }

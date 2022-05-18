@@ -96,6 +96,22 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         _postLpUpdate(pool, lpAmount, tokensReceived, msg.sender, true);
     }
 
+    function exitPoolSingleToken(
+        address pool,
+        uint256 lpAmount,
+        address token,
+        uint64 deadline
+    )
+        external
+        registeredPool(pool)
+        returns (uint256 amountOut)
+    {
+        uint256 tokenId; uint256 nTokens;
+        (amountOut, nTokens, tokenId) = IWeightedPool(pool).exitPoolSingleToken(lpAmount, token, deadline);
+        uint256[] memory tokenAmounts = new uint256[](nTokens);
+        _postLpUpdate(pool, lpAmount, tokenAmounts, msg.sender, false);
+    }
+
     /*************************************************
                     Dry run functions
      *************************************************/
