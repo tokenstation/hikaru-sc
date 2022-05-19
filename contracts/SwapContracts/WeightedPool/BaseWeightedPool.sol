@@ -6,32 +6,37 @@ pragma solidity 0.8.13;
 
 import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IWeightedPoolLP } from "./interfaces/IWeightedPoolLP.sol";
-import { WeightedMath } from "./libraries/ConstantProductMath.sol";
+import { WeightedMath } from "./libraries/WeightedMath.sol";
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { WeightedStorage } from "./WeightedStorage.sol";
 
-abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
+abstract contract BaseWeightedPool is WeightedStorage {
     
-    event FeesUpdate(uint256 newSwapFee, uint256 newDepositFee);
+    event FeesUpdate(uint256 newSwapFee);
 
     using FixedPoint for uint256;
 
     uint256 internal constant ONE = 1e18;
 
-    uint256[] public balances;
+    uint256 public lpBalance;
 
     uint256 public swapFee;
-    uint256 public depositFee;
+
+    uint256[] public balances;
+
+    constructor(
+        uint256 swapFee_
+    ) {
+        _setPoolFees(swapFee_);
+    }
 
     function _setPoolFees(
-        uint256 swapFee_,
-        uint256 depositFee_
+        uint256 swapFee_
     ) 
         internal
     {
         swapFee = swapFee_;
-        depositFee = depositFee_;
-        emit FeesUpdate(swapFee_, depositFee_);
+        emit FeesUpdate(swapFee_);
     }
 
     function normalizedBalance(
@@ -42,6 +47,17 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
         returns (uint256 normalizedBalance_)
     {
         normalizedBalance_ = balances[_getTokenId(token)] * _getMultiplier(token);
+    }
+
+    function normalizeAmount(
+        uint256 amount,
+        address token
+    )
+        internal
+        view
+        returns (uint256 normalizedAmount)
+    {
+        normalizedAmount = amount * _getMultiplier(token);
     }
 
     function denormalizeAmount(
@@ -64,18 +80,16 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
         view
         returns(uint256 swapResult, uint256 fees)
     {
+        amountIn = amountIn.sub(amountIn.mulDown(swapFee));
         swapResult = WeightedMath._calcOutGivenIn(
             normalizedBalance(tokenIn), 
             _getWeight(tokenIn), 
             normalizedBalance(tokenOut),
             _getWeight(tokenOut), 
-            amountIn
+            normalizeAmount(amountIn, tokenIn)
         );
 
-        fees = swapResult.mulDown(swapFee);
-        swapResult = swapResult - fees;
-
-        swapResult = denormalizeAmount(swapResult, tokenIn);
+        swapResult = denormalizeAmount(swapResult, tokenOut);
         fees = denormalizeAmount(fees, tokenIn);
     }
 
@@ -93,10 +107,13 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
             _getWeight(tokenIn), 
             normalizedBalance(tokenOut), 
             _getWeight(tokenOut), 
-            amountOut
+            normalizeAmount(amountOut, tokenOut)
         );
 
-        amountIn = amountInWithoutFee.divDown(ONE - swapFee);
+        amountIn = denormalizeAmount(
+            amountInWithoutFee.divDown(ONE - swapFee),
+            tokenIn
+        );
         fees = amountIn - amountInWithoutFee;
     }
 
@@ -110,6 +127,21 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
     {
         _changeBalance(tokenIn, amountIn, true);
         _changeBalance(tokenOut, amountOut, false);
+    }
+
+    function _postJoinExit(
+        uint256 lpAmount,
+        uint256[] memory tokenDeltas,
+        bool join
+    )
+        internal
+    {
+        address[] memory tokens = _getTokens();
+        for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
+            _changeBalance(tokens[tokenId], tokenDeltas[tokenId], join);
+        }   
+
+        lpBalance = join ? lpBalance + lpAmount : lpBalance - lpAmount;
     }
 
     /*************************************************
@@ -151,31 +183,5 @@ abstract contract BaseWeightedPool is IWeightedPoolLP, WeightedStorage, ERC20 {
     ) internal {
         uint256 tokenId = _getTokenId(token);
         balances[tokenId] = positive ? balances[tokenId] + amount : balances[tokenId] - amount;
-    }
-
-    /*************************************************
-                      ERC20 external functions
-     *************************************************/
-
-    function mint(
-        address user,
-        uint256 amount
-    )
-        external
-        override
-        onlyVault(msg.sender)
-    {
-        _mint(user, amount);
-    }
-
-    function burn(
-        address user,
-        uint256 amount
-    )
-        external
-        override
-        onlyVault(msg.sender)
-    {
-        _burn(user, amount);
     }
 }   

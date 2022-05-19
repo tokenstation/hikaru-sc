@@ -21,6 +21,15 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
 
     using TokenUtils for IERC20;
 
+    constructor(
+        address weightedPoolFactory_,
+        address lpTokenFactory_
+    ) 
+        WeightedVaultStorage(weightedPoolFactory_, lpTokenFactory_)
+    {
+
+    }
+
     /*************************************************
                     Real functions
      *************************************************/
@@ -85,6 +94,22 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         tokensReceived = IWeightedPool(pool).exitPool(lpAmount, deadline);
         _transferTokensTo(IWeightedStorage(pool).getTokens(), tokensReceived, msg.sender);
         _postLpUpdate(pool, lpAmount, tokensReceived, msg.sender, true);
+    }
+
+    function exitPoolSingleToken(
+        address pool,
+        uint256 lpAmount,
+        address token,
+        uint64 deadline
+    )
+        external
+        registeredPool(pool)
+        returns (uint256 amountOut)
+    {
+        uint256 tokenId; uint256 nTokens;
+        (amountOut, nTokens, tokenId) = IWeightedPool(pool).exitPoolSingleToken(lpAmount, token, deadline);
+        uint256[] memory tokenAmounts = new uint256[](nTokens);
+        _postLpUpdate(pool, lpAmount, tokenAmounts, msg.sender, false);
     }
 
     /*************************************************
@@ -157,10 +182,10 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         internal
     {
         if (enterPool) {
-            IWeightedPoolLP(pool).mint(user, lpAmount);
+            _mintTokensTo(pool, user, lpAmount);
             emit Deposit(pool, lpAmount, tokenAmounts, user);
         } else {
-            IWeightedPoolLP(pool).burn(user, lpAmount);
+            _burnTokensFrom(pool, user, lpAmount);
             emit Withdraw(pool, lpAmount, tokenAmounts, user);
         }
     }

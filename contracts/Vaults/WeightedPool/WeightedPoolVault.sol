@@ -11,18 +11,20 @@ import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
+import { Flashloan } from "../Flashloan.sol";
 
-contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
+contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations, Flashloan {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;
 
     constructor(
-        address weightedPoolFactory_
+        address weightedPoolFactory_,
+        address lpTokenFactory_
     )
-        SingleManager(msg.sender) 
+        WeightedVaultPoolOperations(weightedPoolFactory_, lpTokenFactory_)
+        SingleManager(msg.sender)
     {
-        weightedPoolFactory = IFactory(weightedPoolFactory_);
     }
 
     // Router uses transferFrom to get tokens from users, because
@@ -101,6 +103,7 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
 
     function registerPool(
         address pool,
+        address lpTokenAddress,
         address[] memory tokens
     ) 
         external 
@@ -108,6 +111,7 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         onlyFactory
         returns (bool registerStatus)
     {
+        _registerLPToken(pool, lpTokenAddress);
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             IERC20(tokens[tokenId]).approve(pool, MAX_UINT);
         }

@@ -31,6 +31,12 @@ interface IWeightedPool {
         uint64 deadline
     ) external returns (uint256[] memory tokensReceived);
 
+    function exitPoolSingleToken(
+        uint256 lpAmount,
+        address token,
+        uint64 deadline
+    ) external returns (uint256 amountOut, uint256 nTokens, uint256 tokenId);
+
     function calculateSwap(
         address tokenIn,
         address tokenOut,
@@ -45,4 +51,14 @@ interface IWeightedPool {
     function calculateExit(
         uint256 lpAmount
     ) external view returns (uint256[] memory tokensReceived);
+
+    function calculatExitSingleToken(
+        uint256 lpAmount,
+        address token
+    ) external view returns (uint256 amountOut);
+
+    function initializePool(
+        uint256[] memory tokenAmounts,
+        uint64 deadline
+    ) external returns (uint256 lpAmount);
 }

@@ -4,3 +4,19 @@
 
 pragma solidity 0.8.13;
 
+import { ILPTokenFactory } from "./interfaces/ILPTokenFactory.sol";
+import { LPTokenERC20 } from "./LPToken.sol";
+
+contract LPTokenFactory is ILPTokenFactory {
+    function createNewToken(
+        address vault, 
+        string memory name,
+        string memory symbol
+    )
+        external
+        override
+        returns (address tokenAddress)
+    {
+        tokenAddress = address(new LPTokenERC20(vault, name, symbol));
+    }
+}
