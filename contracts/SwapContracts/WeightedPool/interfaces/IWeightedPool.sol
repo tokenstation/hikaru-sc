@@ -56,4 +56,9 @@ interface IWeightedPool {
         uint256 lpAmount,
         address token
     ) external view returns (uint256 amountOut);
+
+    function initializePool(
+        uint256[] memory tokenAmounts,
+        uint64 deadline
+    ) external returns (uint256 lpAmount);
 }

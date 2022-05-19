@@ -15,6 +15,7 @@ import { SingleManager } from "../../utils/SingleManager.sol";
 contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
     // TODO: Check other todo's
+    // TODO: move initialization to joinPool (by adding check of totalSupply)
     // TODO: refactor contract
     // TODO: add documentation
     // TODO: apply optimisations where possible and it does not obscure code
@@ -182,6 +183,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         uint64 deadline
     )
         external
+        override
         onlyVault(msg.sender)
         checkDeadline(deadline)
         returns (uint256 lpAmount)
