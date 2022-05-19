@@ -11,8 +11,9 @@ import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
+import { Flashloan } from "../Flashloan.sol";
 
-contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
+contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations, Flashloan {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;

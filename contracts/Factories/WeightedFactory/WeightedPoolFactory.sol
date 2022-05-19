@@ -9,7 +9,7 @@ import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol"
 import { IWeightedVault } from "../../Vaults/WeightedPool/interfaces/IWeightedVault.sol";
 import { ILPTokenFactory } from "../ERC20Factory/interfaces/ILPTokenFactory.sol";
 
-// TODO: Light up facttory
+// TODO: create base factory contract which implements checking pools origin (if it was deployed using factory)
 
 contract WeightedPoolFactory is IFactory {
 
@@ -62,6 +62,7 @@ contract WeightedPoolFactory is IFactory {
         external
         returns (address poolAddress)
     {
+        // TODO: change uniqueness checks and add real values for checking boundaries
         require(
             tokens_.length == weights_.length,
             "Invalid array length"

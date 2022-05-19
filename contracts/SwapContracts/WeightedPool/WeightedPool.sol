@@ -15,9 +15,6 @@ import { SingleManager } from "../../utils/SingleManager.sol";
 contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
     // TODO: Check other todo's
-    // TODO: Move ERC20 as LP to separate contract
-    // TODO: add join/exit pool using one token
-    // TODO: add unified interface for exchange (probably will be added to vault)
     // TODO: refactor contract
     // TODO: add documentation
     // TODO: apply optimisations where possible and it does not obscure code
