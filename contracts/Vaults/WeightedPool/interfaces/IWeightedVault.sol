@@ -2,12 +2,11 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 interface IWeightedVault {
     function registerPool(
         address pool,
-        address lpToken,
         address[] memory tokens
     ) external returns (bool registerStatus);
 }

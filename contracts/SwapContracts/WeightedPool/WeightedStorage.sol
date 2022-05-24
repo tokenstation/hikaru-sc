@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { InternalStorage } from "./utils/InternalWeightedStorage.sol";
 import { IWeightedStorage } from "./interfaces/IWeightedStorage.sol";
@@ -186,12 +186,14 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (N_TOKENS >= 19) multipliers[19] = multiplier20;
     }
 
-    modifier onlyVault(address caller) {
+    function _onlyVault() 
+        internal
+        view
+    {
         require(
-            caller == vaultAddress,
+            msg.sender == vaultAddress,
             "This function can only be accessed via vault"
         );
-        _;
     }
 
     modifier onlyFactory(address caller) {

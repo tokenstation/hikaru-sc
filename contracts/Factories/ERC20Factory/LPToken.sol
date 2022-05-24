@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { ILPERC20 } from "./interfaces/ILPToken.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -43,6 +43,7 @@ contract LPTokenERC20 is LPVault, ERC20, ILPERC20 {
         uint256 amount
     )
         external
+        override
         onlyVault(msg.sender)
     {
         _mint(to, amount);
@@ -53,6 +54,7 @@ contract LPTokenERC20 is LPVault, ERC20, ILPERC20 {
         uint256 amount
     )
         external
+        override
         onlyVault(msg.sender)
     {
         _burn(from, amount);

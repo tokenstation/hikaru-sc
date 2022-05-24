@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -26,7 +26,7 @@ contract ReentrancyGuard {
 
 contract Flashloan is ReentrancyGuard, IFlashloan {
 
-    // TODO: add fee receiver setters
+    // TODO: add external fee receiver setters in vault
 
     address feeReceiver;
 
@@ -37,6 +37,7 @@ contract Flashloan is ReentrancyGuard, IFlashloan {
         bytes memory callbackData
     ) 
         external
+        override
         reentrancyGuard
     {
         uint256[] memory fees = new uint256[](tokens.length);
@@ -61,6 +62,18 @@ contract Flashloan is ReentrancyGuard, IFlashloan {
             );
             tokens[tokenId].transfer(feeReceiver, balanceAfter - initBalances[tokenId]);
         } 
+    }
+
+    function _setFeeReceiver(
+        address newFeeReceiver
+    ) 
+        internal
+    {
+        require(
+            newFeeReceiver != address(0),
+            "Fee receiver cannot be zero address"
+        );
+        feeReceiver = newFeeReceiver;
     }
 
     function _checkTokens(

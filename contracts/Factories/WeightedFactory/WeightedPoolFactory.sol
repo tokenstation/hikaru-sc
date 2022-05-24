@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { IFactory } from "../interfaces/IFactory.sol";
 import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol";
@@ -27,22 +27,12 @@ contract WeightedPoolFactory is IFactory {
         uint256 indexed poolId
     );
 
-    string constant internal version = "v1";
-    string constant internal basePoolsName = "WeightedPool";
+    string constant public version = "v1";
+    string constant public basePoolsName = "WeightedPool";
     uint256 constant internal ONE = 1e18;
 
     address[] internal pools;
     mapping(address => bool) internal knownPools;
-    /**
-      Initial cost of writing non-zero value is 22100 gas
-      When we restore previously written value to 0 (if storage slot previously had 0 value) 
-      we pay 2200 get 19900 gas refund, so final cost is:
-      cost = 22100 + 2200 - 19900 = 4400 gas per token
-      usually there are 2-5 tokens, so cost of uniqueness check is ~8k-20k
-
-      Also, mappings can only be created as state variables (as of solc 0.8.13)
-     */
-    mapping(address => bool) internal uniqueTokens;
 
     constructor(
         address weightedVault_,
@@ -62,7 +52,7 @@ contract WeightedPoolFactory is IFactory {
         external
         returns (address poolAddress)
     {
-        // TODO: change uniqueness checks and add real values for checking boundaries
+        // TODO: real values for checking boundaries
         require(
             tokens_.length == weights_.length,
             "Invalid array length"
@@ -77,21 +67,17 @@ contract WeightedPoolFactory is IFactory {
         );
 
         uint256 weightSum = 0;
+        address currentToken = address(1);
         for (uint256 tokenId = 0; tokenId < tokens_.length; tokenId++) {
-            require(
-                tokens_[tokenId] != address(0),
-                "Zero-address tokens are forbidden"
-            );
-            require(
-                !uniqueTokens[tokens_[tokenId]],
-                "Token duplication detected. Pool can only have unique tokens."
-            );
             require(
                 weights_[tokenId] >= 0, // TODO: add real value
                 "Weight cannot be lower than {value}"
             );
-
-            uniqueTokens[tokens_[tokenId]] = true;
+            require(
+                currentToken < tokens_[tokenId],
+                "Invalid order of tokens or token duplication detected"
+            );
+            currentToken = tokens_[tokenId];
             weightSum += weights_[tokenId];
         }
 
@@ -99,11 +85,6 @@ contract WeightedPoolFactory is IFactory {
             weightSum == ONE,
             "Sum of all weights is not equal to ONE (1e18)"
         );
-
-        // Free storage to get gas refund
-        for (uint256 tokenId = 0; tokenId < tokens_.length; tokenId++) {
-            delete uniqueTokens[tokens_[tokenId]];
-        }
 
         poolAddress = address(
             new WeightedPool(

@@ -2,16 +2,16 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { IFactory } from "../../Factories/interfaces/IFactory.sol";
 import { ILPTokenFactory } from "../../Factories/ERC20Factory/interfaces/ILPTokenFactory.sol";
 import { ILPERC20 } from "../../Factories/ERC20Factory/interfaces/ILPToken.sol";
+import { ExternalBalanceManager } from "../BalancesManager.sol";
+import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
 
-contract WeightedVaultStorage {
+contract WeightedVaultStorage is ExternalBalanceManager {
     address constant internal ZERO_ADDRESS = address(0);
-    mapping (address => ILPERC20) lpTokens;
-    mapping (address => uint256) balances;
     IFactory public weightedPoolFactory;
     ILPTokenFactory public lpTokenFactory;
 
@@ -23,50 +23,30 @@ contract WeightedVaultStorage {
         lpTokenFactory = ILPTokenFactory(lpTokenFactory_);
     }
 
-    function _registerLPToken(
+    function _getPoolTokenBalanceByAddress(
         address pool,
-        address lpToken
-    ) 
-        internal
-    {
-        require(
-            address(lpTokens[pool]) == ZERO_ADDRESS,
-            "Pool already has LP token assigned to it"
-        );
-
-        lpTokens[pool] = ILPERC20(lpToken);
-    }
-
-    function _mintTokensTo(
-        address pool,
-        address user,
-        uint256 tokenAmount
+        address token
     )
         internal
-        _existingLPToken(pool)
+        view
+        returns (uint256 tokenBalance)
     {
-        lpTokens[pool].mint(user, tokenAmount);
-    }
-
-    function _burnTokensFrom(
-        address pool,
-        address user,
-        uint256 tokenAmount
-    )
-        internal
-        _existingLPToken(pool)
-    {
-        lpTokens[pool].burn(user, tokenAmount);
-    }
-
-    modifier _existingLPToken(
-        address pool
-    ) {
-        require(
-            address(lpTokens[pool]) != ZERO_ADDRESS,
-            "Pool has no LP token assigned to it"
+        return _getPoolTokenBalance(
+            pool, 
+            IWeightedStorage(pool).getTokenId(token)
         );
-        _;
+    }
+
+    function getPoolTokenBalance(
+        address pool, 
+        address token
+    )
+        external
+        override
+        view
+        returns(uint256 tokenBalance)
+    {
+        tokenBalance = _getPoolTokenBalanceByAddress(pool, token);
     }
 
     modifier registeredPool(address poolAddress) {

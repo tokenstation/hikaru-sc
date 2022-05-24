@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 interface ILPERC20 {
     function mint(address to, uint256 amount) external;

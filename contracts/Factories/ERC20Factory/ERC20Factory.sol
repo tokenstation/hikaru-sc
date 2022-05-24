@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { ILPTokenFactory } from "./interfaces/ILPTokenFactory.sol";
 import { LPTokenERC20 } from "./LPToken.sol";
