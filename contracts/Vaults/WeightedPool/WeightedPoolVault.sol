@@ -70,6 +70,11 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         // TODO: add call to router to approve tokens from router to vault
         // i.e. in router (IERC20(token).approve(vault, MAX_UINT256))
         _registerPoolBalance(pool, tokens.length);
+        // Vault must be added to known vaults of pool before this operation
+        // Or we need to think of another way of performing default swaps, also there may be a problem with tokens
+        // That implement fees on transfers -> there will be two transfers involved in operation
+        // TODO: think about it
+        // IRouter(routerAddress).setInfiniteApprove(tokens);
         return true;
     }
 

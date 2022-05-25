@@ -3,10 +3,13 @@
 // @author tokenstation.dev
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { SafeERC20 } from "./SafeERC20.sol";
 
 pragma solidity 0.8.6;
 
 library TokenUtils {
+    using SafeERC20 for IERC20;
+
     function transferFromUser(
         IERC20 tokenIn,
         address user,
@@ -15,10 +18,9 @@ library TokenUtils {
         internal
         returns(uint256)
     {
-        IERC20 tokenContract = IERC20(tokenIn);
-        uint256 balanceBefore = tokenContract.balanceOf(address(this));
-        tokenContract.transferFrom(user, address(this), amountIn);
-        uint256 balanceAfter = tokenContract.balanceOf(address(this));
+        uint256 balanceBefore = tokenIn.balanceOf(address(this));
+        tokenIn.safeTransferFrom(user, address(this), amountIn);
+        uint256 balanceAfter = tokenIn.balanceOf(address(this));
         return balanceAfter - balanceBefore;
     }
 
@@ -30,10 +32,9 @@ library TokenUtils {
         internal
         returns(uint256)
     {
-        IERC20 tokenContract = IERC20(tokenOut);
-        uint256 balanceBefore = tokenContract.balanceOf(address(this));
-        tokenContract.transfer(user, amountOut);
-        uint256 balanceAfter = tokenContract.balanceOf(address(this));
+        uint256 balanceBefore = tokenOut.balanceOf(address(this));
+        tokenOut.safeTransfer(user, amountOut);
+        uint256 balanceAfter = tokenOut.balanceOf(address(this));
         return balanceBefore - balanceAfter;
     }
 }

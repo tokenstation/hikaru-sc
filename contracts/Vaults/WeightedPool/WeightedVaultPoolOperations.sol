@@ -6,7 +6,7 @@ pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IWeightedVaultSwaps } from "./interfaces/IWeightedVault.sol";
-import { TokenUtils } from "../../utils/TokenUtils.sol";
+import { TokenUtils } from "../../utils/libraries/TokenUtils.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
 import { IWeightedPoolLP } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPoolLP.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
