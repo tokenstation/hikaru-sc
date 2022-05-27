@@ -4,6 +4,7 @@
 
 pragma solidity 0.8.6;
 
+import {FixedPoint} from "../../../utils/Math/FixedPoint.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract InternalStorage {
@@ -77,12 +78,49 @@ contract InternalStorage {
     uint256 internal immutable multiplier19;
     uint256 internal immutable multiplier20;
 
+    function checkUniquness(uint256[] memory array) internal pure returns (bool flag) {
+        flag = true;
+        uint256 val = array[0];
+        for (uint256 valId = 1; valId < array.length; valId++) {
+            flag = flag && (val != array[valId]) && (val < array[valId]);
+            if (!flag) return flag;
+            val = array[valId];
+        }
+    }
+
+    function checkUniquness(address[] memory array) internal pure returns (bool flag) {
+        flag = true;
+        address addr = array[0];
+        for (uint256 addrId = 1; addrId < array.length; addrId++) {
+            flag = flag && (addr != array[addrId]) && (addr < array[addrId]);
+            if (!flag) return flag;
+            addr = array[addrId];
+        }
+    }
+
     constructor(
         address factoryAddress_,
         address vaultAddress_,
         address[] memory tokens,
         uint256[] memory weights
     ) {
+        require(
+            tokens.length == weights.length,
+            "Array length mismatch"
+        );
+        require(
+            checkUniquness(tokens),
+            "Token duplication"
+        );
+        uint256 weightsSum = 0;
+        for (uint256 weightId = 0; weightId < weights.length; weightId++) {
+            weightsSum += weights[weightId];
+        }
+        require(
+            weightsSum == FixedPoint.ONE,
+            "Invalid total weight sum"
+        );
+
         factoryAddress = factoryAddress_;
         vaultAddress = vaultAddress_;
         
@@ -131,7 +169,7 @@ contract InternalStorage {
         weight20 = weights.length >= 20 ? weights[19] : 0;
 
         multiplier1  = 10**(18 - IERC20Metadata(tokens[0]).decimals());
-        multiplier2  = 10**(18 - IERC20Metadata(tokens[0]).decimals());
+        multiplier2  = 10**(18 - IERC20Metadata(tokens[1]).decimals());
         multiplier3  = tokens.length >= 3  ? 10**(18 - IERC20Metadata(tokens[2 ]).decimals()) : 0;
         multiplier4  = tokens.length >= 4  ? 10**(18 - IERC20Metadata(tokens[3 ]).decimals()) : 0;
         multiplier5  = tokens.length >= 5  ? 10**(18 - IERC20Metadata(tokens[4 ]).decimals()) : 0;
