@@ -11,7 +11,7 @@ import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
-import { Flashloan } from "../Flashloan.sol";
+import { Flashloan } from "../Flashloan/Flashloan.sol";
 
 contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations, Flashloan {
 
@@ -20,9 +20,12 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
 
     constructor(
         address weightedPoolFactory_,
-        address lpTokenFactory_
+        address lpTokenFactory_,
+        uint256 flashloanFee_,
+        address flashloanFeeReceiver_
     )
         WeightedVaultPoolOperations(weightedPoolFactory_, lpTokenFactory_)
+        Flashloan(flashloanFeeReceiver_, flashloanFee_)
         SingleManager(msg.sender)
     {
     }
@@ -67,14 +70,9 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         onlyFactory
         returns (bool registerStatus)
     {
-        // TODO: add call to router to approve tokens from router to vault
-        // i.e. in router (IERC20(token).approve(vault, MAX_UINT256))
+        // TODO: add call for approve to router
+        // i.g.: if user wants to swap token that was not swap before, router performs infinite approve to vault of this token
         _registerPoolBalance(pool, tokens.length);
-        // Vault must be added to known vaults of pool before this operation
-        // Or we need to think of another way of performing default swaps, also there may be a problem with tokens
-        // That implement fees on transfers -> there will be two transfers involved in operation
-        // TODO: think about it
-        // IRouter(routerAddress).setInfiniteApprove(tokens);
         return true;
     }
 
@@ -85,6 +83,26 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         onlyManager
     {
         weightedPoolFactory = IFactory(factoryAddress);
+    }
+
+    function setFlashloanFees(
+        uint256 flashloanFees_
+    )
+        external
+        override
+        onlyManager
+    {
+        _setFlashloanFees(flashloanFees_);
+    }
+
+    function setFeeReceiver(
+        address feeReceiver_
+    )
+        external
+        override
+        onlyManager
+    {
+        _setFeeReceiver(feeReceiver_);
     }
 
     function _poolOfCorrectType(address poolAddress)
