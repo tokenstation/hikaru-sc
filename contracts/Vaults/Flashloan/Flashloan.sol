@@ -8,6 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IFlashloan, IFlashloanReceiver } from "./interfaces/IFlashloan.sol";
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { ReentrancyGuard } from "../../utils/ReentrancyGuard.sol";
+import { MiscUtils } from "../../utils/libraries/MiscUtils.sol";
 
 interface IFlashloanManager {
     
@@ -17,9 +18,6 @@ interface IFlashloanManager {
 }
 
 abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
-
-    // TODO: add external fee receiver setters in vault
-    // TODO: add mechanism for setting fees for flashloans
 
     using FixedPoint for uint256;
 
@@ -46,12 +44,14 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
     {
         uint256[] memory fees = new uint256[](tokens.length);
         uint256[] memory initBalances = new uint256[](tokens.length);
-        address token = address(1);
 
-        // TODO: use function checkUniqueness from future library
+        require(
+            MiscUtils.checkUniqueness(tokens),
+            "Token duplication"
+        );
+
+
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
-            _checkTokens(token, address(tokens[tokenId]));
-            token = address(tokens[tokenId]);
             initBalances[tokenId] = tokens[tokenId].balanceOf(address(this));
             fees[tokenId] = _getFee(amounts[tokenId]);
             IERC20(tokens[tokenId]).transfer(address(receiver), amounts[tokenId]);
@@ -87,20 +87,6 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
         internal
     {
         flashloanFee = flashloanFees_;
-    }
-
-    function _checkTokens(
-        address token1,
-        address token2
-    ) 
-        internal 
-        pure
-    {
-        require(
-            token1 != address(0) &&
-            token1 < token2,
-            "Unsorted array or token duplication"
-        );
     }
 
     function _getFee(

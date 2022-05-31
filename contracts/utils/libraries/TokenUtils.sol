@@ -2,10 +2,11 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
+pragma solidity 0.8.6;
+
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SafeERC20 } from "./SafeERC20.sol";
 
-pragma solidity 0.8.6;
 
 library TokenUtils {
     using SafeERC20 for IERC20;

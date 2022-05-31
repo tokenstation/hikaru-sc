@@ -11,13 +11,10 @@ import { BaseSplitCodeFactory } from "../../utils/CodeSplitter/BaseSplitCodeFact
 
 // TODO: create base factory contract which implements checking pools origin (if it was deployed using factory)
 // TODO: add contract for setting default pool manager
-// TODO: add function for getting total amount of pools created
 // TODO: check that all setters emit events
+// TODO: add interface for weighted factory
 
 contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
-
-    uint256 constant internal MAX_TOKENS = 20;
-
     IWeightedVault internal weightedVault;
 
     event PoolCreated(address indexed poolAddress);
@@ -83,5 +80,13 @@ contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
         returns (bool knownPool)
     {
         return knownPools[poolAddress];
+    }
+
+    function totalPools()
+        external
+        view
+        returns (uint256 N_POOLS)
+    {
+        return pools.length;
     }
 }

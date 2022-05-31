@@ -15,11 +15,9 @@ import { SingleManager } from "../../utils/SingleManager.sol";
 contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
     // TODO: Check other todo's
-    // TODO: refactor contract
     // TODO: add documentation
     // TODO: apply optimisations where possible and it does not obscure code
     // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
-    // TODO: add comission boundaries check
 
     constructor(
         address factoryAddress_,

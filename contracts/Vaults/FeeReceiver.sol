@@ -7,6 +7,7 @@ pragma solidity 0.8.6;
 import { SingleManager } from "../utils/SingleManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "../utils/libraries/SafeERC20.sol";
+import { MiscUtils } from "../utils/libraries/MiscUtils.sol";
 
 interface IFeeReceiver {
     function withdrawFeesTo(IERC20[] memory tokens, address[] memory to, uint256[] memory amounts) external;
@@ -17,6 +18,8 @@ interface IFeeReceiver {
 contract FeeReceiver is SingleManager, IFeeReceiver {
 
     using SafeERC20 for IERC20;
+
+    address constant internal ZERO_ADDRESS = address(0);
         
     constructor (
         address manager_
@@ -35,14 +38,10 @@ contract FeeReceiver is SingleManager, IFeeReceiver {
         override
         onlyManager
     {
-        // TODO: add array length checks as separate library for contracts
-        require(
-            tokens.length == to.length &&
-            to.length == amounts.length,
-            "Array length mismatch"
-        );
+        MiscUtils.checkArrayLength(tokens, to);
+        MiscUtils.checkArrayLength(tokens, amounts);
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
-            if (address(tokens[tokenId]) == address(0)) {
+            if (address(tokens[tokenId]) == ZERO_ADDRESS) {
                 payable(to[tokenId]).transfer(amounts[tokenId]);
             } else {
                 tokens[tokenId].safeTransfer(to[tokenId], amounts[tokenId]);

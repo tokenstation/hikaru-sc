@@ -315,7 +315,6 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeighted
         internal
         view
     {
-        // TODO: change this check to just checking if pool balances are presented in storage
         require(
             weightedPoolFactory.checkPoolAddress(pool),
             "Pool is not registered in factory"

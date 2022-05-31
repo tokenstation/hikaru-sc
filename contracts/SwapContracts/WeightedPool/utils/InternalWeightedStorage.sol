@@ -4,12 +4,15 @@
 
 pragma solidity 0.8.6;
 
-import {WeightedMath} from "../libraries/WeightedMath.sol";
-import {FixedPoint} from "../../../utils/Math/FixedPoint.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { WeightedMath } from "../libraries/WeightedMath.sol";
+import { FixedPoint } from "../../../utils/Math/FixedPoint.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { MiscUtils } from "../../../utils/libraries/MiscUtils.sol";
 
 contract InternalStorage {
-    address constant ZERO_ADDRESS = address(0);
+
+    address constant internal ZERO_ADDRESS = address(0);
+    uint256 constant internal MAX_TOKENS = 20;
 
     address public immutable factoryAddress;
     address public immutable vaultAddress; 
@@ -79,30 +82,19 @@ contract InternalStorage {
     uint256 internal immutable multiplier19;
     uint256 internal immutable multiplier20;
 
-    // TODO: move checkUniqueness to library
-
-    function checkUniquness(address[] memory array) internal pure returns (bool flag) {
-        flag = true;
-        address addr = array[0];
-        for (uint256 addrId = 1; addrId < array.length; addrId++) {
-            flag = flag && (addr < array[addrId]);
-            if (!flag) return flag;
-            addr = array[addrId];
-        }
-    }
-
     constructor(
         address factoryAddress_,
         address vaultAddress_,
         address[] memory tokens,
         uint256[] memory weights
     ) {
+        MiscUtils.checkArrayLength(tokens, weights);
         require(
-            tokens.length == weights.length,
-            "Array length mismatch"
+            tokens.length <= MAX_TOKENS,
+            "Cannot create pool with more than 20 tokens"
         );
         require(
-            checkUniquness(tokens),
+            MiscUtils.checkUniqueness(tokens),
             "Token duplication"
         );
         uint256 weightsSum = 0;
