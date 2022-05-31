@@ -2,12 +2,17 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { WeightedMath } from "../libraries/WeightedMath.sol";
+import { FixedPoint } from "../../../utils/Math/FixedPoint.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { MiscUtils } from "../../../utils/libraries/MiscUtils.sol";
 
 contract InternalStorage {
-    address constant ZERO_ADDRESS = address(0);
+
+    address constant internal ZERO_ADDRESS = address(0);
+    uint256 constant internal MAX_TOKENS = 20;
 
     address public immutable factoryAddress;
     address public immutable vaultAddress; 
@@ -83,6 +88,28 @@ contract InternalStorage {
         address[] memory tokens,
         uint256[] memory weights
     ) {
+        MiscUtils.checkArrayLength(tokens, weights);
+        require(
+            tokens.length <= MAX_TOKENS,
+            "Cannot create pool with more than 20 tokens"
+        );
+        require(
+            MiscUtils.checkUniqueness(tokens),
+            "Token duplication"
+        );
+        uint256 weightsSum = 0;
+        for (uint256 weightId = 0; weightId < weights.length; weightId++) {
+            require(
+                WeightedMath._MIN_WEIGHT <= weights[weightId],
+                "Weights must be gte 1e16"
+            );
+            weightsSum += weights[weightId];
+        }
+        require(
+            weightsSum == FixedPoint.ONE,
+            "Invalid total weight sum"
+        );
+
         factoryAddress = factoryAddress_;
         vaultAddress = vaultAddress_;
         
@@ -130,8 +157,11 @@ contract InternalStorage {
         weight19 = weights.length >= 19 ? weights[18] : 0;
         weight20 = weights.length >= 20 ? weights[19] : 0;
 
+
+        // This section also checks that smart contracts with provided addresses exist
+        // Also this means that tokens cannot have more than 18 decimals
         multiplier1  = 10**(18 - IERC20Metadata(tokens[0]).decimals());
-        multiplier2  = 10**(18 - IERC20Metadata(tokens[0]).decimals());
+        multiplier2  = 10**(18 - IERC20Metadata(tokens[1]).decimals());
         multiplier3  = tokens.length >= 3  ? 10**(18 - IERC20Metadata(tokens[2 ]).decimals()) : 0;
         multiplier4  = tokens.length >= 4  ? 10**(18 - IERC20Metadata(tokens[3 ]).decimals()) : 0;
         multiplier5  = tokens.length >= 5  ? 10**(18 - IERC20Metadata(tokens[4 ]).decimals()) : 0;

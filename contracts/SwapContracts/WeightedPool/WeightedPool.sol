@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -15,21 +15,22 @@ import { SingleManager } from "../../utils/SingleManager.sol";
 contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
 
     // TODO: Check other todo's
-    // TODO: move initialization to joinPool (by adding check of totalSupply)
-    // TODO: refactor contract
     // TODO: add documentation
     // TODO: apply optimisations where possible and it does not obscure code
     // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
 
     constructor(
-        address vault,
+        address factoryAddress_,
+        address vaultAddress_,
         address poolManager_,
         address[] memory tokens_,
         uint256[] memory weights_,
-        uint256 swapFee_
+        uint256 swapFee_,
+        string memory name_,
+        string memory symbol_
     ) 
-        WeightedStorage(msg.sender, vault, tokens_, weights_)
-        BaseWeightedPool(swapFee_)
+        WeightedStorage(factoryAddress_, vaultAddress_, tokens_, weights_)
+        BaseWeightedPool(swapFee_, name_, symbol_)
         SingleManager(poolManager_)
     { 
 
@@ -40,20 +41,21 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
      *************************************************/
 
     function swap(
+        uint256[] memory balances,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 minAmountOut,
-        uint64 deadline
+        uint256 minAmountOut
     ) 
         external
         override
-        onlyVault(msg.sender)
-        checkDeadline(deadline)
-        checkTokens(tokenIn, tokenOut)
+        view
         returns (uint256 amountOut)
     {
+        _onlyVault();
+        _checkTokens(tokenIn, tokenOut);
         (amountOut, ) = _calculateOutGivenIn(
+            balances,
             tokenIn,
             tokenOut,
             amountIn
@@ -62,42 +64,31 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             amountOut >= minAmountOut,
             "Not enough tokens received"
         );
-        _postSwap(
-            tokenIn,
-            amountIn,
-            tokenOut,
-            amountOut
-        );
     }
 
     function swapExactOut(
+        uint256[] memory balances,
         address tokenIn,
         address tokenOut,
         uint256 amountOut,
-        uint256 maxAmountIn,
-        uint64 deadline
+        uint256 maxAmountIn
     )
         external
         override
-        onlyVault(msg.sender)
-        checkDeadline(deadline)
-        checkTokens(tokenIn, tokenOut)
+        view
         returns (uint256 amountIn)
     {
+        _onlyVault();
+        _checkTokens(tokenIn, tokenOut);
         (amountIn, ) = _calculateInGivenOut(
+            balances,
             tokenIn, 
             tokenOut, 
-            amountIn
+            amountOut
         );
         require(
             amountIn <= maxAmountIn,
             "Too much tokens is used for swap"
-        );
-        _postSwap(
-            tokenIn,
-            amountIn,
-            tokenOut,
-            amountOut
         );
     }
 
@@ -106,105 +97,56 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
      *************************************************/
 
     function joinPool(
-        uint256[] memory amounts_,
-        uint64 deadline
+        uint256[] memory balances,
+        address user,
+        uint256[] memory amounts_
     )
         external
         override
-        onlyVault(msg.sender)
-        checkDeadline(deadline)
         returns(uint256 lpAmount)
     {
-        require(
-            amounts_.length == N_TOKENS,
-            "Invalid array size"
-        );
+        _onlyVault();
+        if (totalSupply() == 0) {
+            // Pool initialization
+            // First person to join pool sets initial exchange rates
+            // So it's necessary to provide all tokens
+            
+            lpAmount = _calculateInitialization(amounts_);
+        } else {
+            lpAmount = _calculateJoinPool(balances, amounts_);
+        }
 
-        uint256[] memory swapFees;
-        (lpAmount, swapFees) = WeightedMath._calcBptOutGivenExactTokensIn(
-            balances, 
-            _getWeights(), 
-            amounts_,
-            lpBalance,
-            swapFee
-        );
-
-        _postJoinExit(lpAmount, amounts_, true);
+        _postJoinExit(user, lpAmount, true);
     }
 
     function exitPool(
-        uint256 lpAmount,
-        uint64 deadline
+        uint256[] memory balances,
+        address user,
+        uint256 lpAmount
     )
         external
         override
-        onlyVault(msg.sender)
-        checkDeadline(deadline)
         returns (uint256[] memory tokensReceived)
     {
-        tokensReceived = WeightedMath._calcTokensOutGivenExactBptIn(
-            balances,
-            lpAmount,
-            lpBalance
-        );
+        _onlyVault();
+        tokensReceived = _calculateExitPool(balances, lpAmount);
 
-        _postJoinExit(lpAmount, tokensReceived, false);
+        _postJoinExit(user, lpAmount, false);
     }
 
     function exitPoolSingleToken(
+        uint256[] memory balances,
+        address user,
         uint256 lpAmount,
-        address token,
-        uint64 deadline
+        address token
     )
         external
         override
-        onlyVault(msg.sender)
-        checkDeadline(deadline)
-        returns (uint256 amountOut, uint256 nTokens, uint256 tokenId)
+        returns (uint256[] memory tokenDeltas)
     {
-        nTokens = N_TOKENS;
-        tokenId = _getTokenId(token);
-        (amountOut, ) = WeightedMath._calcTokenOutGivenExactBptIn(
-            balances[tokenId], 
-            _getWeight(token), 
-            lpAmount, 
-            lpBalance, 
-            swapFee
-        );
-        lpBalance -= lpAmount;
-    }
-
-    /*************************************************
-                    Initialize pool
-     *************************************************/
-
-    function initializePool(
-        uint256[] memory tokenAmounts,
-        uint64 deadline
-    )
-        external
-        override
-        onlyVault(msg.sender)
-        checkDeadline(deadline)
-        returns (uint256 lpAmount)
-    {
-        require(
-            lpBalance == 0,
-            "Pool alreadly initialized"
-        );
-        require(
-            tokenAmounts.length == N_TOKENS,
-            "Invalid array length"
-        );
-
-        uint256[] memory multipliers = _getMultipliers();
-
-        for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
-            tokenAmounts[tokenId] *= multipliers[tokenId];
-        }
-
-        lpAmount = WeightedMath._calculateInvariant(_getWeights(), tokenAmounts);
-        balances = tokenAmounts;
+        _onlyVault();
+        tokenDeltas = _calculateExitSingleToken(balances, token, lpAmount);
+        _postJoinExit(user, lpAmount, false);
     }
 
     /*************************************************
@@ -212,6 +154,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
      *************************************************/
 
     function calculateSwap(
+        uint256[] memory balances,
         address tokenIn,
         address tokenOut,
         uint256 swapAmount,
@@ -220,26 +163,25 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         external
         override
         view
-        checkTokens(tokenIn, tokenOut)
         returns(uint256 swapResult, uint256 fee)
     {
-        if (exactIn) {
-            (swapResult, fee) = _calculateOutGivenIn(
+        _checkTokens(tokenIn, tokenOut);
+        (swapResult, fee) = exactIn ?
+            _calculateOutGivenIn(
+                balances,
+                tokenIn,
+                tokenOut,
+                swapAmount
+            ) : _calculateInGivenOut(
+                balances,
                 tokenIn,
                 tokenOut,
                 swapAmount
             );
-        } else {
-            (swapResult, fee) = _calculateInGivenOut(
-                tokenIn,
-                tokenOut,
-                swapAmount
-            );
-        }
-        
     }
 
     function calculateJoin(
+        uint256[] memory balances,
         uint256[] calldata amountsIn
     )
         external
@@ -247,16 +189,14 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         view
         returns (uint256 lpAmount)
     {
-        (lpAmount, ) = WeightedMath._calcBptOutGivenExactTokensIn(
-            balances, 
-            _getWeights(), 
-            amountsIn,
-            lpBalance,
-            swapFee
-        );
+        if (totalSupply() == 0) 
+            return _calculateInitialization(amountsIn);
+        else 
+            return _calculateJoinPool(balances, amountsIn);
     }
 
     function calculateExit(
+        uint256[] memory balances,
         uint256 lpAmount
     )
         external
@@ -264,14 +204,11 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         view
         returns (uint256[] memory tokensReceived)
     {
-        tokensReceived = WeightedMath._calcTokensOutGivenExactBptIn(
-            balances,
-            lpAmount,
-            lpBalance
-        );
+        tokensReceived = _calculateExitPool(balances, lpAmount);
     }
 
     function calculatExitSingleToken(
+        uint256[] memory balances,
         uint256 lpAmount,
         address token
     ) 
@@ -280,13 +217,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         view 
         returns (uint256 amountOut)
     {
-        (amountOut,) = WeightedMath._calcTokenOutGivenExactBptIn(
-            balances[_getTokenId(token)], 
-            _getWeight(token), 
-            lpAmount, 
-            lpBalance, 
-            swapFee
-        );
+        uint256 tokenId = _getTokenId(token);
+        amountOut = _calculateExitSingleToken(balances, token, lpAmount)[tokenId];
     }
 
 

@@ -2,17 +2,16 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 interface IWeightedVault {
     function registerPool(
         address pool,
-        address lpToken,
         address[] memory tokens
     ) external returns (bool registerStatus);
 }
 
-interface IWeightedVaultSwaps {
+interface IWeightedVaultOperations {
     function swap(
         address pool,
         address tokenIn,
@@ -42,6 +41,14 @@ interface IWeightedVaultSwaps {
         uint256 lpAmount,
         uint64 deadline
     ) external returns (uint256[] memory tokensReceived);
+
+    
+    function exitPoolSingleToken(
+        address pool,
+        uint256 lpAmount,
+        address token,
+        uint64 deadline
+    ) external returns (uint256 amountOut);
 
     function calculateSwap(
         address pool,

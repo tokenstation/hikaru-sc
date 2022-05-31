@@ -2,33 +2,35 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
 import { IFlashloan, IFlashloanReceiver } from "./interfaces/IFlashloan.sol";
+import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
+import { ReentrancyGuard } from "../../utils/ReentrancyGuard.sol";
+import { MiscUtils } from "../../utils/libraries/MiscUtils.sol";
 
-contract ReentrancyGuard {
-    uint256 constant internal LOCK = 1;
-    uint256 constant internal UNLOCK = 0;
-    uint256 state;
+interface IFlashloanManager {
+    
+    function setFeeReceiver(address newFeeReceiver) external;
 
-    modifier reentrancyGuard() {
-        require(
-            state == UNLOCK,
-            "Reentrancy attempt"
-        );
-        state = LOCK;
-        _;
-        state = UNLOCK;
-    }
+    function setFlashloanFees(uint256 flashloanFees) external;
 }
 
-contract Flashloan is ReentrancyGuard, IFlashloan {
+abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
 
-    // TODO: add fee receiver setters
+    using FixedPoint for uint256;
 
     address feeReceiver;
+    uint256 public flashloanFee;
+
+    constructor(
+        address feeReceiver_,
+        uint256 flashloanFee_
+    ) {
+        _setFeeReceiver(feeReceiver_);
+        _setFlashloanFees(flashloanFee_);
+    }
 
     function flashloan(
         IFlashloanReceiver receiver,
@@ -37,17 +39,21 @@ contract Flashloan is ReentrancyGuard, IFlashloan {
         bytes memory callbackData
     ) 
         external
+        override
         reentrancyGuard
     {
         uint256[] memory fees = new uint256[](tokens.length);
         uint256[] memory initBalances = new uint256[](tokens.length);
-        address token = address(1);
+
+        require(
+            MiscUtils.checkUniqueness(tokens),
+            "Token duplication"
+        );
+
 
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
-            _checkTokens(token, address(tokens[tokenId]));
-            token = address(tokens[tokenId]);
             initBalances[tokenId] = tokens[tokenId].balanceOf(address(this));
-            fees[tokenId] = _getFees(amounts[tokenId]);
+            fees[tokenId] = _getFee(amounts[tokenId]);
             IERC20(tokens[tokenId]).transfer(address(receiver), amounts[tokenId]);
         }
 
@@ -63,27 +69,33 @@ contract Flashloan is ReentrancyGuard, IFlashloan {
         } 
     }
 
-    function _checkTokens(
-        address token1,
-        address token2
+    function _setFeeReceiver(
+        address newFeeReceiver
     ) 
-        internal 
-        pure
+        internal
     {
         require(
-            token1 != address(0) &&
-            token1 < token2,
-            "Unsorted array or token duplication"
+            newFeeReceiver != address(0),
+            "Fee receiver cannot be zero address"
         );
+        feeReceiver = newFeeReceiver;
     }
 
-    function _getFees(
+    function _setFlashloanFees(
+        uint256 flashloanFees_
+    )
+        internal
+    {
+        flashloanFee = flashloanFees_;
+    }
+
+    function _getFee(
         uint256 amount
     )
         internal
         view
         returns(uint256 fee)
     {
-
+        fee = amount.mulDown(flashloanFee);
     }
 }

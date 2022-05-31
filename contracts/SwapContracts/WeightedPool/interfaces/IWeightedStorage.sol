@@ -2,7 +2,7 @@
 // @title Interface for obtaining token info from contracts
 // @author tokenstation.dev
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.6;
 
 interface IWeightedStorage {
     function getTokenId(address token) external view returns (uint256 tokenId);
