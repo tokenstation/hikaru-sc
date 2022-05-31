@@ -19,9 +19,11 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     // TODO: add documentation
     // TODO: apply optimisations where possible and it does not obscure code
     // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
+    // TODO: add comission boundaries check
 
     constructor(
-        address vault,
+        address factoryAddress_,
+        address vaultAddress_,
         address poolManager_,
         address[] memory tokens_,
         uint256[] memory weights_,
@@ -29,7 +31,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         string memory name_,
         string memory symbol_
     ) 
-        WeightedStorage(msg.sender, vault, tokens_, weights_)
+        WeightedStorage(factoryAddress_, vaultAddress_, tokens_, weights_)
         BaseWeightedPool(swapFee_, name_, symbol_)
         SingleManager(poolManager_)
     { 

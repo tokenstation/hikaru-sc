@@ -11,7 +11,7 @@ interface IWeightedVault {
     ) external returns (bool registerStatus);
 }
 
-interface IWeightedVaultSwaps {
+interface IWeightedVaultOperations {
     function swap(
         address pool,
         address tokenIn,
@@ -41,6 +41,14 @@ interface IWeightedVaultSwaps {
         uint256 lpAmount,
         uint64 deadline
     ) external returns (uint256[] memory tokensReceived);
+
+    
+    function exitPoolSingleToken(
+        address pool,
+        uint256 lpAmount,
+        address token,
+        uint64 deadline
+    ) external returns (uint256 amountOut);
 
     function calculateSwap(
         address pool,

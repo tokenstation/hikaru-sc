@@ -12,8 +12,12 @@ contract InternalBalanceManager {
         uint256 nTokens
     )
         internal
+        returns (bool)
     {
+        if (_internalBalances[pool].length != 0) return false;
+        
         _internalBalances[pool] = new uint256[](nTokens);
+        return true;
     }
 
     function _getPoolTokenBalance(

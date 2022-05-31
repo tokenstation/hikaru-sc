@@ -18,6 +18,7 @@ library TokenUtils {
         internal
         returns(uint256)
     {
+        if (amountIn == 0) return 0;
         uint256 balanceBefore = tokenIn.balanceOf(address(this));
         tokenIn.safeTransferFrom(user, address(this), amountIn);
         uint256 balanceAfter = tokenIn.balanceOf(address(this));
@@ -32,6 +33,7 @@ library TokenUtils {
         internal
         returns(uint256)
     {
+        if (amountOut == 0) return 0;
         uint256 balanceBefore = tokenOut.balanceOf(address(this));
         tokenOut.safeTransfer(user, amountOut);
         uint256 balanceAfter = tokenOut.balanceOf(address(this));

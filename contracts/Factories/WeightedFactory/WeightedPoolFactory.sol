@@ -11,6 +11,8 @@ import { BaseSplitCodeFactory } from "../../utils/CodeSplitter/BaseSplitCodeFact
 
 // TODO: create base factory contract which implements checking pools origin (if it was deployed using factory)
 // TODO: add contract for setting default pool manager
+// TODO: add function for getting total amount of pools created
+// TODO: check that all setters emit events
 
 contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
 
@@ -40,15 +42,17 @@ contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
         uint256[] memory weights,
         uint256 swapFee,
         string memory lpName,
-        string memory lpSymbol
+        string memory lpSymbol,
+        address poolManager
     )
         external
         returns (address poolAddress)
     {
         poolAddress = _create(
             abi.encode(
+                address(this),
                 address(weightedVault),
-                msg.sender, // TODO: IPoolManager.getManager(msg.sender) -> address of manager
+                poolManager, // TODO: IPoolManager.getManager(msg.sender) -> address of manager
                 tokens,
                 weights,
                 swapFee,

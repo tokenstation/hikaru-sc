@@ -17,6 +17,7 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     using FixedPoint for uint256;
 
     uint256 internal constant ONE = 1e18;
+    uint256 public constant MAX_SWAP_FEE = 5e15;
 
     uint256 public swapFee;
 
@@ -35,6 +36,10 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     ) 
         internal
     {
+        require(
+            swapFee_ <= MAX_SWAP_FEE,
+            "Swap fee must be lte 5e15"
+        );
         swapFee = swapFee_;
         emit FeesUpdate(swapFee_);
     }
@@ -96,7 +101,8 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         view
         returns(uint256 swapResult, uint256 fees)
     {
-        amountIn = amountIn.sub(amountIn.mulDown(swapFee));
+        fees = amountIn.mulDown(swapFee);
+        amountIn = amountIn - fees;
         swapResult = WeightedMath._calcOutGivenIn(
             _normalizedBalance(balances, tokenIn), 
             _getWeight(tokenIn), 
@@ -106,7 +112,6 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         );
 
         swapResult = _denormalizeAmount(swapResult, tokenOut);
-        fees = _denormalizeAmount(fees, tokenIn);
     }
 
     function _calculateInGivenOut(
@@ -127,11 +132,11 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
             _normalizeAmount(amountOut, tokenOut)
         );
 
-        amountIn = _denormalizeAmount(
-            amountInWithoutFee.divDown(ONE - swapFee),
-            tokenIn
-        );
+        amountIn = amountInWithoutFee.divDown(ONE - swapFee);
         fees = amountIn - amountInWithoutFee;
+
+        amountIn = _denormalizeAmount(amountIn, tokenIn);
+        fees = _denormalizeAmount(fees, tokenIn);
     }
 
     function _calculateInitialization(
@@ -141,15 +146,13 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         view
         returns (uint256 lpAmount)
     {
-        uint256[] memory multipliers = _getMultipliers();
-        uint256[] memory normalizedAmounts = new uint256[](N_TOKENS);
+        uint256[] memory normalizedAmounts = _getNormalizedBalances(amounts_);
 
         for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
             require(
-                amounts_[tokenId] != 0,
+                normalizedAmounts[tokenId] != 0,
                 "Cannot initialize pool with zero token valut"
             );
-            normalizedAmounts[tokenId] = amounts_[tokenId] * multipliers[tokenId];
         }
 
         lpAmount = WeightedMath._calculateInvariant(_getWeights(), normalizedAmounts);

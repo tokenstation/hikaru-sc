@@ -18,8 +18,10 @@ contract FeeReceiver is SingleManager, IFeeReceiver {
 
     using SafeERC20 for IERC20;
         
-    constructor ()
-        SingleManager(msg.sender)
+    constructor (
+        address manager_
+    )
+        SingleManager(manager_)
     {
 
     }

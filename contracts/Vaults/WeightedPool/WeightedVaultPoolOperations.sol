@@ -5,15 +5,17 @@
 pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { IWeightedVaultSwaps } from "./interfaces/IWeightedVault.sol";
+import { IWeightedVaultOperations } from "./interfaces/IWeightedVault.sol";
 import { TokenUtils } from "../../utils/libraries/TokenUtils.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
 import { IWeightedPoolLP } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPoolLP.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { WeightedVaultStorage } from "./WeightedVaultStorage.sol";
+import { Flashloan } from "../Flashloan/Flashloan.sol";
 
 
-contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwaps {
+
+abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultOperations, Flashloan {
 
     event Swap(address pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address user);
     event Deposit(address pool, uint256 lpAmount, uint256[] tokensDeposited, address user);
@@ -22,10 +24,9 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
     using TokenUtils for IERC20;
 
     constructor(
-        address weightedPoolFactory_,
-        address lpTokenFactory_
+        address weightedPoolFactory_
     ) 
-        WeightedVaultStorage(weightedPoolFactory_, lpTokenFactory_)
+        WeightedVaultStorage(weightedPoolFactory_)
     {
 
     }
@@ -44,6 +45,7 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
     ) 
         external 
         override
+        reentrancyGuard
         returns (uint256 amountOut) 
     {
         _preOpChecks(pool, deadline);
@@ -67,6 +69,7 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
     ) 
         external 
         override
+        reentrancyGuard
         returns (uint256 amountIn)
     {
         _preOpChecks(pool, deadline);
@@ -87,6 +90,7 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
     ) 
         external 
         override
+        reentrancyGuard
         returns(uint256 lpAmount) 
     {
         _preOpChecks(pool, deadline);
@@ -100,6 +104,7 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
     ) 
         external 
         override
+        reentrancyGuard
         returns (uint256[] memory tokensReceived)
     {
         _preOpChecks(pool, deadline);
@@ -113,6 +118,8 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         uint64 deadline
     )
         external
+        override
+        reentrancyGuard
         returns (uint256 amountOut)
     {
         _preOpChecks(pool, deadline);
@@ -137,9 +144,17 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         address user = msg.sender;
 
         uint256[] memory poolBalances = _getPoolBalances(pool);
+        amount = exactIn ? 
+            _transferFrom(tokenIn, user, amount) : 
+            _transferTo(tokenOut, user, amount);
+
         calculationResult = exactIn ?
             IWeightedPool(pool).swap(poolBalances, tokenIn, tokenOut, amount, minMaxAmount) :
             IWeightedPool(pool).swapExactOut(poolBalances, tokenIn, tokenOut, amount, minMaxAmount);
+
+        calculationResult = exactIn ? 
+            _transferTo(tokenOut, user, calculationResult) :
+            _transferFrom(tokenIn, user, calculationResult);
 
         _postSwap(
             pool, 
@@ -176,7 +191,7 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         uint256[] memory balances = _getPoolBalances(pool);
         tokensReceived = IWeightedPool(pool).exitPool(_getPoolBalances(pool), user, lpAmount);
         tokensReceived = _transferTokensTo(IWeightedStorage(pool).getTokens(), tokensReceived, msg.sender);
-        _postLpUpdate(pool, lpAmount, balances, tokensReceived, msg.sender, true);
+        _postLpUpdate(pool, lpAmount, balances, tokensReceived, msg.sender, false);
     }
 
     function _exitPoolSingleToken(
@@ -195,10 +210,6 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         amountOut = tokensReceived[IWeightedStorage(pool).getTokenId(token)];
     }
 
-    /*************************************************
-                    Dry run functions
-     *************************************************/
-
     function _calculateSwap(
         address pool,
         address tokenIn,
@@ -213,6 +224,10 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         uint256[] memory balances = _getPoolBalances(pool);
         (swapResult, fee) = IWeightedPool(pool).calculateSwap(balances, tokenIn, tokenOut, swapAmount, exactIn);
     }
+
+    /*************************************************
+                    Dry run functions
+     *************************************************/
 
     function calculateSwap(
         address pool,
@@ -269,8 +284,6 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
     )
         internal
     {
-        amountIn = _transferFrom(tokenIn, user, amountIn);
-        amountOut = _transferTo(tokenOut, user, amountOut);
         _changePoolBalance(pool, IWeightedStorage(pool).getTokenId(tokenIn), amountIn, true);
         _changePoolBalance(pool, IWeightedStorage(pool).getTokenId(tokenOut), amountOut, false);
         emit Swap(pool, tokenIn, tokenOut, amountIn, amountOut, user);
@@ -302,6 +315,7 @@ contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultSwap
         internal
         view
     {
+        // TODO: change this check to just checking if pool balances are presented in storage
         require(
             weightedPoolFactory.checkPoolAddress(pool),
             "Pool is not registered in factory"

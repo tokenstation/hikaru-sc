@@ -48,6 +48,7 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
         uint256[] memory initBalances = new uint256[](tokens.length);
         address token = address(1);
 
+        // TODO: use function checkUniqueness from future library
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             _checkTokens(token, address(tokens[tokenId]));
             token = address(tokens[tokenId]);

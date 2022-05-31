@@ -4,6 +4,7 @@
 
 pragma solidity 0.8.6;
 
+import {WeightedMath} from "../libraries/WeightedMath.sol";
 import {FixedPoint} from "../../../utils/Math/FixedPoint.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -78,21 +79,13 @@ contract InternalStorage {
     uint256 internal immutable multiplier19;
     uint256 internal immutable multiplier20;
 
-    function checkUniquness(uint256[] memory array) internal pure returns (bool flag) {
-        flag = true;
-        uint256 val = array[0];
-        for (uint256 valId = 1; valId < array.length; valId++) {
-            flag = flag && (val != array[valId]) && (val < array[valId]);
-            if (!flag) return flag;
-            val = array[valId];
-        }
-    }
+    // TODO: move checkUniqueness to library
 
     function checkUniquness(address[] memory array) internal pure returns (bool flag) {
         flag = true;
         address addr = array[0];
         for (uint256 addrId = 1; addrId < array.length; addrId++) {
-            flag = flag && (addr != array[addrId]) && (addr < array[addrId]);
+            flag = flag && (addr < array[addrId]);
             if (!flag) return flag;
             addr = array[addrId];
         }
@@ -114,6 +107,10 @@ contract InternalStorage {
         );
         uint256 weightsSum = 0;
         for (uint256 weightId = 0; weightId < weights.length; weightId++) {
+            require(
+                WeightedMath._MIN_WEIGHT <= weights[weightId],
+                "Weights must be gte 1e16"
+            );
             weightsSum += weights[weightId];
         }
         require(
@@ -168,6 +165,9 @@ contract InternalStorage {
         weight19 = weights.length >= 19 ? weights[18] : 0;
         weight20 = weights.length >= 20 ? weights[19] : 0;
 
+
+        // This section also checks that smart contracts with provided addresses exist
+        // Also this means that tokens cannot have more than 18 decimals
         multiplier1  = 10**(18 - IERC20Metadata(tokens[0]).decimals());
         multiplier2  = 10**(18 - IERC20Metadata(tokens[1]).decimals());
         multiplier3  = tokens.length >= 3  ? 10**(18 - IERC20Metadata(tokens[2 ]).decimals()) : 0;

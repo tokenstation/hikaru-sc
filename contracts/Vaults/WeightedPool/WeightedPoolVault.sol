@@ -13,18 +13,18 @@ import { SingleManager } from "../../utils/SingleManager.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
 
-contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations, Flashloan {
+// TODO: systematize imports
+contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;
 
     constructor(
         address weightedPoolFactory_,
-        address lpTokenFactory_,
         uint256 flashloanFee_,
         address flashloanFeeReceiver_
     )
-        WeightedVaultPoolOperations(weightedPoolFactory_, lpTokenFactory_)
+        WeightedVaultPoolOperations(weightedPoolFactory_)
         Flashloan(flashloanFeeReceiver_, flashloanFee_)
         SingleManager(msg.sender)
     {
@@ -40,6 +40,7 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
     ) 
         external 
         override
+        reentrancyGuard
         returns (uint256 swapResult)
     {
         _preOpChecks(pool, deadline);
@@ -72,8 +73,7 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
     {
         // TODO: add call for approve to router
         // i.g.: if user wants to swap token that was not swap before, router performs infinite approve to vault of this token
-        _registerPoolBalance(pool, tokens.length);
-        return true;
+        return _registerPoolBalance(pool, tokens.length);
     }
 
     function setFactoryAddress(
