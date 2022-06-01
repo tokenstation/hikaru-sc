@@ -18,6 +18,7 @@ interface IFeeReceiver {
 contract FeeReceiver is SingleManager, IFeeReceiver {
 
     using SafeERC20 for IERC20;
+    using MiscUtils for IERC20[];
 
     address constant internal ZERO_ADDRESS = address(0);
         

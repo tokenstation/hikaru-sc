@@ -14,7 +14,7 @@ import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
 
 // TODO: systematize imports
-contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
+contract WeightedVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;

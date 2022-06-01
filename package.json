@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0"
+    "@openzeppelin/contracts": "^4.5.0",
+    "tronbox": "^2.7.25"
   },
   "name": "dswap-contracts-v1",
   "description": "DSwap - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
@@ -9,8 +10,9 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-tron-container": "docker run -it -p 9090:9090 --rm --name tron trontools/quickstart",
-    "install-tron-container": "docker pull trontools/quickstart"
+    "start-tron-container": "docker run -it -p 9090:9090 -e defaultBalance=100000 -e mnemonic=\"glory unfold blind actress surround army neck maid purity wedding pen meat\" --rm --name tron trontools/quickstart ",
+    "install-tron-container": "docker pull trontools/quickstart",
+    "compile": "yarn tronbox compile"
   },
   "repository": {
     "type": "git",
@@ -18,7 +20,8 @@
   },
   "keywords": [
     "solidity",
-    "DeX"
+    "DeX",
+    "Tron"
   ],
   "author": "tokenstation.dev",
   "license": "GPL-3.0-or-later",
