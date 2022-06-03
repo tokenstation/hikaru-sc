@@ -6,6 +6,7 @@ const flashloanFee = 1e15;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 module.exports = async function(deployer, network, account) {
+    if (network.indexOf('tron') < 0) return;
     await deployer.deploy(
         FeeReceiver, 
         tronWrap._accounts[0], 
