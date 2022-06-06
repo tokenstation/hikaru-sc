@@ -6,7 +6,6 @@
     "bn-chai": "^1.0.1",
     "bn.js": "^5.2.1",
     "dotenv": "^16.0.1",
-    "evm-fork-launch": "^0.2.0",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.5.26",
     "web3-utils": "^1.7.3"

@@ -205,7 +205,11 @@ abstract contract BaseSplitCodeFactory {
         }
 
         // Copy remaining bytes
-        uint256 mask = 256**(32 - len) - 1;
+        uint256 mask = 
+            len == 0 ?
+            type(uint256).max :
+            256**(32 - len) - 1;
+
         assembly {
             let srcpart := and(mload(src), not(mask))
             let destpart := and(mload(dest), mask)
