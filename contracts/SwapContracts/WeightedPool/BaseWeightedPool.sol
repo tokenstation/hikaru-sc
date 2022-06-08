@@ -12,7 +12,7 @@ import { WeightedStorage } from "./WeightedStorage.sol";
 
 abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     
-    event FeesUpdate(uint256 newSwapFee);
+    event SwapFeeUpdate(uint256 newSwapFee);
 
     using FixedPoint for uint256;
 
@@ -28,10 +28,10 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     ) 
         ERC20(name_, symbol_)
     {
-        _setPoolFees(swapFee_);
+        _setSwapFee(swapFee_);
     }
 
-    function _setPoolFees(
+    function _setSwapFee(
         uint256 swapFee_
     ) 
         internal
@@ -41,7 +41,7 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
             "Swap fee must be lte 5e15"
         );
         swapFee = swapFee_;
-        emit FeesUpdate(swapFee_);
+        emit SwapFeeUpdate(swapFee_);
     }
 
     function _normalizedBalance(

@@ -80,7 +80,7 @@ contract InternalBalanceManager {
 }
 
 interface IExternalBalanceManager {
-    function getPoolBalance(
+    function getPoolBalances(
         address pool
     ) external view returns (uint256[] memory poolBalance);
 
@@ -91,7 +91,7 @@ interface IExternalBalanceManager {
 }
 
 abstract contract ExternalBalanceManager is IExternalBalanceManager, InternalBalanceManager {
-    function getPoolBalance(
+    function getPoolBalances(
         address pool
     )
         external

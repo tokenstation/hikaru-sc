@@ -226,12 +226,12 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
                    Change pool parameters
      *************************************************/
 
-    function setPoolFees(
+    function setSwapFee(
         uint256 swapFee_
     )
         external
         onlyManager
     {
-        _setPoolFees(swapFee_);
+        _setSwapFee(swapFee_);
     }
 }   

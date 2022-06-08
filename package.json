@@ -15,11 +15,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start-tron-container": "docker run -it -p 9090:9090 -e defaultBalance=100000 -e mnemonic=\"glory unfold blind actress surround army neck maid purity wedding pen meat\" --rm --name tron trontools/quickstart ",
     "install-tron-container": "docker pull trontools/quickstart",
     "start-evm-fork": "ganache",
-    "compile": "yarn tronbox compile"
+    "compile": "truffle compile --all",
+    "migrate": "truffle migrate --network development --compile-none",
+    "test": "truffle test --network development --compile-none"
   },
   "repository": {
     "type": "git",
