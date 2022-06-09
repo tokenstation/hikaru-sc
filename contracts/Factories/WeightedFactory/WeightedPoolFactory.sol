@@ -6,7 +6,7 @@ pragma solidity 0.8.6;
 
 import { IFactory } from "../interfaces/IFactory.sol";
 import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol";
-import { IWeightedVault } from "../../Vaults/WeightedPool/interfaces/IWeightedVault.sol";
+import { IWeightedVault } from "../../Vaults/WeightedVault/interfaces/IWeightedVault.sol";
 import { BaseSplitCodeFactory } from "../../utils/CodeSplitter/BaseSplitCodeFactory.sol";
 
 // TODO: create base factory contract which implements checking pools origin (if it was deployed using factory)
