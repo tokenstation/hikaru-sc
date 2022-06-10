@@ -169,7 +169,7 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         (lpAmount, ) = WeightedMath._calcBptOutGivenExactTokensIn(
             _getNormalizedBalances(balances), 
             _getWeights(), 
-            amounts_,
+            _getNormalizedBalances(amounts_),
             totalSupply(),
             swapFee
         );

@@ -6,7 +6,7 @@ import {FixedPoint} from "../../contracts/utils/Math/FixedPoint.sol";
 contract TestMath {
     using FixedPoint for uint256;
 
-    function calculateOutGivenIn(
+    function calcOutGivenIn(
         uint256 balanceIn, 
         uint256 weightIn,
         uint256 balanceOut,
