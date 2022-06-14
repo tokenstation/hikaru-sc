@@ -1,8 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// @title Interface for obtaining token info from contracts
+// @author tokenstation.dev
+
 pragma solidity 0.8.6;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20, ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract ERC20Mock is ERC20 {
+interface IERC20Mintable {
+    function mint(address to, uint256 amount) external;
+    function burn(address from, uint256 amount) external;
+}
+
+contract ERC20Mock is ERC20, IERC20Mintable {
 
     uint8 _decimals;
 
@@ -30,6 +39,7 @@ contract ERC20Mock is ERC20 {
         uint256 amount
     )
         external
+        override
     {
         _mint(to, amount);
     }
@@ -39,6 +49,7 @@ contract ERC20Mock is ERC20 {
         uint256 amount
     )
         external
+        override
     {
         _burn(from, amount);
     }

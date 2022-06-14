@@ -8,7 +8,7 @@
 // 6. Exit in all tokens
 // 7. Exit in single token
 
-const { expectRevert } = require("@openzeppelin/test-helpers");
+const { expectRevert, balance, expectEvent } = require("@openzeppelin/test-helpers");
 const { toBN } = require("web3-utils");
 
 const WeightedFactory = artifacts.require('WeightedPoolFactory');
@@ -132,6 +132,9 @@ contract('WeightedPool', async(accounts) => {
             const amount = toBN(1e6);
             const tokens = await pool.getTokens.call();
             const amounts = await generateEqualAmountsForTokens(tokens, amount);
+            const initiazlizerDeltas = amounts.map((val) => val.mul(toBN(-1)));
+            const addresses = [initializer, weightedVault.address];
+            const deltas = [initiazlizerDeltas, amounts];
             const deadline = getDeadline();
 
             const weights = await pool.getWeights.call();
@@ -143,16 +146,31 @@ contract('WeightedPool', async(accounts) => {
                 )
             );
 
+            const initialBalances = await getBalancesForAddresses(addresses, tokens);
+
             const poolLPToken = await ERC20Mock.at(pool.address);
             const initialLPTS = toBN(await poolLPToken.totalSupply.call());
             const initialUserLPBalance = toBN(await poolLPToken.balanceOf.call(initializer));
-
-            const tx = await weightedVault.joinPool(
+            
+            const txRes = await weightedVault.joinPool(
                 pool.address,
                 amounts,
                 deadline,
                 from(initializer)
             );
+
+            // TODO: check what can be done with txRes without BN array modifications
+            // checkDepositEvent(
+            //     txRes,
+            //     pool.address,
+            //     expectedLPAmount,
+            //     amounts,
+            //     initializer
+            // )
+
+            const finalBalances = await getBalancesForAddresses(addresses, tokens);
+            checkBNDeltas(initialBalances, finalBalances, deltas)
+            
 
             const finalLPTS = toBN(await poolLPToken.totalSupply.call());
             const finalUserLPBalance = toBN(await poolLPToken.balanceOf.call(initializer));
@@ -179,9 +197,12 @@ contract('WeightedPool', async(accounts) => {
             const amount = toBN(1e5);
             const tokens = await pool.getTokens.call();
             const amounts = await generateEqualAmountsForTokens(tokens, amount);
+            const joinerAmounts = amounts.map((val) => val.mul(toBN(-1)));
+            const watchAddresses = [joiner, weightedVault.address];
             const deadline = getDeadline();
 
             const initJoinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
+            const initialBalances = await getBalancesForAddresses(watchAddresses, tokens);
 
             const tx = await weightedVault.joinPool(
                 pool.address,
@@ -190,6 +211,8 @@ contract('WeightedPool', async(accounts) => {
                 from(joiner)
             );
 
+            const finalBalances = await getBalancesForAddresses(watchAddresses, tokens);
+            checkBNDeltas(initialBalances, finalBalances, [joinerAmounts, amounts]);
             await postJoinChecks(initJoinInfo);
         })
 
@@ -198,9 +221,12 @@ contract('WeightedPool', async(accounts) => {
             const tokens = await pool.getTokens.call();
             let amounts = await generateEqualAmountsForTokens(tokens, amount);
             amounts[getRandomId(amounts.length)] = toBN(0);
+            const joinerAmounts = amounts.map((val) => val.mul(toBN(-1)));
+            const watchAddresses = [joiner, weightedVault.address];
             const deadline = getDeadline();
 
             const initJoinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
+            const initialBalances = await getBalancesForAddresses(watchAddresses, tokens);
 
             const tx = await weightedVault.joinPool(
                 pool.address,
@@ -209,6 +235,8 @@ contract('WeightedPool', async(accounts) => {
                 from(joiner)
             );
 
+            const finalBalances = await getBalancesForAddresses(watchAddresses, tokens);
+            checkBNDeltas(initialBalances, finalBalances, [joinerAmounts, amounts]);
             await postJoinChecks(initJoinInfo);
         })
 
@@ -216,11 +244,14 @@ contract('WeightedPool', async(accounts) => {
             const amount = toBN(1e5);
             const tokens = await pool.getTokens.call();
             let amounts = await generateEqualAmountsForTokens(tokens, amount);
+            const watchAddresses = [joiner, weightedVault.address];
             const randomId = getRandomId(amounts.length);
             amounts = amounts.map((val, index) => index == randomId ? val : toBN(0));
+            const joinerAmounts = amounts.map((val) => val.mul(toBN(-1)));
             const deadline = getDeadline();
 
             const initJoinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
+            const initialBalances = await getBalancesForAddresses(watchAddresses, tokens);
 
             const tx = await weightedVault.joinPool(
                 pool.address,
@@ -229,6 +260,8 @@ contract('WeightedPool', async(accounts) => {
                 from(joiner)
             );
 
+            const finalBalances = await getBalancesForAddresses(watchAddresses, tokens);
+            checkBNDeltas(initialBalances, finalBalances, [joinerAmounts, amounts]);
             await postJoinChecks(initJoinInfo);
         })
     })
@@ -252,6 +285,14 @@ contract('WeightedPool', async(accounts) => {
 
             const swapInitInfo = await prepareSwapInfo(pool.address, amount, true);
 
+            const watchAddresses = [swapper, weightedVault.address];
+            const watchTokens = [swapInitInfo.tokenIn, swapInitInfo.tokenOut];
+            const initialBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
+            const deltas = [
+                [swapInitInfo.swapAmount.mul(toBN(-1)), swapInitInfo.expectedResult],
+                [swapInitInfo.swapAmount, swapInitInfo.expectedResult.mul(toBN(-1))]
+            ]
+
             const tx = await weightedVault.swap(
                 pool.address,
                 swapInitInfo.tokenIn,
@@ -261,6 +302,9 @@ contract('WeightedPool', async(accounts) => {
                 deadline,
                 from(swapper)
             );
+
+            const finalBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
+            checkBNDeltas(initialBalances, finalBalances, deltas);
         })
 
         it('Perfrom swap with calculating tokenIn amount', async() => {
@@ -268,6 +312,14 @@ contract('WeightedPool', async(accounts) => {
             const deadline = getDeadline();
 
             const swapInitInfo = await prepareSwapInfo(pool.address, amount, false);
+
+            const watchAddresses = [swapper, weightedVault.address];
+            const watchTokens = [swapInitInfo.tokenIn, swapInitInfo.tokenOut];
+            const initialBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
+            const deltas = [
+                [swapInitInfo.expectedResult.mul(toBN(-1)), swapInitInfo.swapAmount],
+                [swapInitInfo.expectedResult, swapInitInfo.swapAmount.mul(toBN(-1))]
+            ]
 
             const tx = await weightedVault.swapExactOut(
                 pool.address,
@@ -278,6 +330,9 @@ contract('WeightedPool', async(accounts) => {
                 deadline,
                 from(swapper)
             );
+
+            const finalBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
+            checkBNDeltas(initialBalances, finalBalances, deltas);
         })
 
         it('Perform default swap using vault', async() => {
@@ -285,6 +340,14 @@ contract('WeightedPool', async(accounts) => {
             const deadline = getDeadline();
 
             const swapInitInfo = await prepareSwapInfo(pool.address, amount, true)
+
+            const watchAddresses = [swapper, weightedVault.address];
+            const watchTokens = [swapInitInfo.tokenIn, swapInitInfo.tokenOut];
+            const initialBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
+            const deltas = [
+                [swapInitInfo.swapAmount.mul(toBN(-1)), swapInitInfo.expectedResult],
+                [swapInitInfo.swapAmount, swapInitInfo.expectedResult.mul(toBN(-1))]
+            ]
 
             const tx = await weightedVault.swap(
                 pool.address,
@@ -295,6 +358,9 @@ contract('WeightedPool', async(accounts) => {
                 deadline,
                 from(swapper)
             );
+
+            const finalBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
+            checkBNDeltas(initialBalances, finalBalances, deltas);
         })
     })
 
@@ -398,10 +464,8 @@ contract('WeightedPool', async(accounts) => {
         amount = toBN(amount);
         const resultAmounts = [];
         for (let tokenAddress of tokens) {
-            const tokenInstance = await ERC20Mock.at(tokenAddress);
-            const decimals = await tokenInstance.decimals.call();
             resultAmounts.push(
-                amount.mul(toBN(10).pow(toBN(decimals)))
+                await getTokenAmountWithDecimals(tokenAddress, amount)
             )
         }
         return resultAmounts;
@@ -540,6 +604,53 @@ contract('WeightedPool', async(accounts) => {
             swapFee,
             expectedResult
         }
+    }
+
+    /**
+     * @param {BN[][]} init 
+     * @param {BN[][]} finish 
+     * @param {BN[][]} delta 
+     */
+    function checkBNDeltas(init, finish, delta) {
+        for (let id = 0; id < init.length; id++) {
+            for(let iid = 0; iid < init[id].length; iid++) {
+                expect(finish[id][iid]).to.eq.BN(init[id][iid].add(delta[id][iid]), "Invalid delta")
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {String[]} addresses 
+     * @param {String[]} tokens 
+     * @returns {Promise<BN[][]>}
+     */
+    async function getBalancesForAddresses(addresses, tokens) {
+        const balances = [];
+        for (const address of addresses) {
+            balances.push(
+                await getBalancesForAddress(address, tokens)
+            )
+        }
+        return balances;
+    }
+
+    /**
+     * @param {String} address 
+     * @param {String[]} tokens 
+     * @returns {Promise<BN[]>}
+     */
+    async function getBalancesForAddress(address, tokens) {
+        const balances = [];
+        for (let tokenAddress of tokens) {
+            let token = await ERC20Mock.at(tokenAddress);
+            balances.push(
+                toBN(
+                    await token.balanceOf.call(address)
+                )
+            )
+        }
+        return balances;
     }
 })
 

@@ -13,7 +13,8 @@ import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeig
 import { WeightedVaultStorage } from "./WeightedVaultStorage.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
 
-
+// TODO: return swapFee on operations and calculate protocol fee
+// TODO: add contract for extracting protocol fee from swap fee
 
 abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, IWeightedVaultOperations, Flashloan {
 
