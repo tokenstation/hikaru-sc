@@ -46,7 +46,9 @@ contract FlashloanerMock is IFlashloanReceiver {
             msg.sender == vaultAddress,
             "Function can only be called by vault"
         );
-
+        receivedTokens = tokens;
+        receivedAmounts = amounts;
+        receivedFees = fees;
         _tryToDecodeData(userData);
 
         // We try not to return tokens to vault
