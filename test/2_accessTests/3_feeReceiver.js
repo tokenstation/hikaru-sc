@@ -18,7 +18,7 @@ contract('FeeReceiver', async(accounts) => {
         it('Trying to access', async() => {
             let randomUser = accounts[1];
 
-            await expectRevert(
+            await expectRevert.unspecified(
                 feeReceiver.withdrawFeesTo([randomUser], [randomUser], [toBN(1e18)], from(randomUser)),
                 "Only manager can execute this function."
             );

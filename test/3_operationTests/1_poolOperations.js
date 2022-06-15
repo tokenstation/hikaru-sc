@@ -8,7 +8,6 @@
 // 6. Exit in all tokens
 // 7. Exit in single token
 
-const { expectRevert, balance, expectEvent } = require("@openzeppelin/test-helpers");
 const { toBN } = require("web3-utils");
 
 const WeightedFactory = artifacts.require('WeightedPoolFactory');

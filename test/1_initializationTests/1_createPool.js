@@ -95,7 +95,8 @@ contract('WeightedFactory', async(accounts) => {
                 accounts[0]
             );
             expect(tx.receipt.status, 'Transaction failed');
-            pool = await WeightedPool.at(tx.logs[0].args.poolAddress);
+            const poolAddress = await weightedFactory.pools.call(0);
+            pool = await WeightedPool.at(poolAddress);
             expect(pool !== undefined, 'Did not load pool');
             const poolAmount = toBN(await weightedFactory.totalPools.call());
             expect(expectedPoolAmount).to.eq.BN(poolAmount, `Invalid amount of pools registered in factory`);

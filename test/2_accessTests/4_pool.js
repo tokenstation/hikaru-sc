@@ -14,6 +14,7 @@ var chai = require('chai');
 var expect = chai.expect;
 var BN = require('bn.js');
 var bnChai = require('bn-chai');
+const expectEvent = require("@openzeppelin/test-helpers/src/expectEvent");
 
 chai.use(bnChai(BN));
 
@@ -102,7 +103,7 @@ contract('WeightedPool access tests', async(accounts) => {
     describe('Calling fee change, rever expected for invalid account', async() => {
         const swapFee = toBN(0.003e18);
         it('Changing fee from malisious account', async() => {
-            await expectRevert(
+            await expectRevert.unspecified(
                 pool.setSwapFee(swapFee.add(toBN(1)), from(maliciousUser)),
                 "Only manager can execute this function."
             );
@@ -110,9 +111,10 @@ contract('WeightedPool access tests', async(accounts) => {
 
         it('Change fee using manager account', async() => {
             const newSwapFee = swapFee.add(toBN(2));
-            await pool.setSwapFee(newSwapFee, from(manager));
+            const tx = await pool.setSwapFee(newSwapFee, from(manager));
             const setSwapFee = toBN(await pool.swapFee.call());
             expect(setSwapFee).to.eq.BN(newSwapFee, 'Invalid swap fee set');
+            expectEvent(tx, 'SwapFeeUpdate', {newSwapFee: newSwapFee});
         })
     })
 
@@ -134,8 +136,8 @@ contract('WeightedPool access tests', async(accounts) => {
                 toBN(3e18)
             ];
             for (let user of users) {
-                await expectRevert(
-                    await pool.joinPool(balances, user, amounts, from(user)),
+                await expectRevert.unspecified(
+                    pool.joinPool(balances, user, amounts, from(user)),
                     "This function can only be accessed via vault"
                 );
             }
@@ -148,12 +150,12 @@ contract('WeightedPool access tests', async(accounts) => {
             const token = (await pool.getTokens.call())[0];
 
             for (let user of users) {
-                await expectRevert(
+                await expectRevert.unspecified(
                     pool.exitPool(balances, user, lpAmount, from(user)),
                     "This function can only be accessed via vault"
                 )
 
-                await expectRevert(
+                await expectRevert.unspecified(
                     pool.exitPoolSingleToken(balances, user, lpAmount, token, from(user)),
                     "This function can only be accessed via vault"
                 )
