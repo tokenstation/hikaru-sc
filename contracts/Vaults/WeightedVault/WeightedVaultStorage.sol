@@ -5,7 +5,7 @@
 pragma solidity 0.8.6;
 
 import { IFactory } from "../../Factories/interfaces/IFactory.sol";
-import { ExternalBalanceManager } from "../BalancesManager.sol";
+import { ExternalBalanceManager } from "../BalanceManager/BalancesManager.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
 
 contract WeightedVaultStorage is ExternalBalanceManager {

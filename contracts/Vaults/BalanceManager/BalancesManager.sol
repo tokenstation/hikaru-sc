@@ -4,6 +4,8 @@
 
 pragma solidity 0.8.6;
 
+import { IExternalBalanceManager } from "./interfaces/IExternalBalanceManager.sol";
+
 contract InternalBalanceManager {
     mapping(address => uint256[]) internal _internalBalances;
 
@@ -77,17 +79,6 @@ contract InternalBalanceManager {
         }
         return balances;
     }
-}
-
-interface IExternalBalanceManager {
-    function getPoolBalances(
-        address pool
-    ) external view returns (uint256[] memory poolBalance);
-
-    function getPoolTokenBalance(
-        address pool,
-        address token
-    ) external view returns (uint256 tokenBalance);
 }
 
 abstract contract ExternalBalanceManager is IExternalBalanceManager, InternalBalanceManager {

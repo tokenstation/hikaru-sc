@@ -11,9 +11,10 @@ import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
+import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
 
 // TODO: systematize imports
-contract WeightedVault is WeightedOperations, IWeightedVault, SingleManager {
+contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, SingleManager {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;
