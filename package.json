@@ -1,14 +1,26 @@
 {
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0"
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "@truffle/hdwallet-provider": "^2.0.8",
+    "bn-chai": "^1.0.1",
+    "bn.js": "^5.2.1",
+    "dotenv": "^16.0.1",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "truffle-plugin-verify": "^0.5.26",
+    "web3-utils": "^1.7.3"
   },
   "name": "dswap-contracts-v1",
   "description": "DSwap - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start-tron-container": "docker run -it -p 9090:9090 -e defaultBalance=100000 -e mnemonic=\"glory unfold blind actress surround army neck maid purity wedding pen meat\" --rm --name tron trontools/quickstart ",
+    "install-tron-container": "docker pull trontools/quickstart",
+    "start-evm-fork": "ganache",
+    "compile": "truffle compile --all",
+    "migrate": "truffle migrate --network development --compile-none",
+    "test": "truffle test --network development --compile-none"
   },
   "repository": {
     "type": "git",
@@ -16,7 +28,8 @@
   },
   "keywords": [
     "solidity",
-    "DeX"
+    "DeX",
+    "Tron"
   ],
   "author": "tokenstation.dev",
   "license": "GPL-3.0-or-later",

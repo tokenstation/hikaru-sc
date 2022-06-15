@@ -14,7 +14,7 @@ import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
 
 // TODO: systematize imports
-contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
+contract WeightedVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;
@@ -62,6 +62,7 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         (swapResult, feeAmount) = _calculateSwap(pool, tokenIn, tokenOut, swapAmount, true);
     }
 
+    event PoolRegistered(address indexed poolAddress);
     function registerPool(
         address pool,
         address[] memory tokens
@@ -71,17 +72,32 @@ contract WeightedPoolVault is IVault, IWeightedVault, SingleManager, WeightedVau
         onlyFactory
         returns (bool registerStatus)
     {
-        // TODO: add call for approve to router
+        // TODO: add call for approve from router
         // i.g.: if user wants to swap token that was not swap before, router performs infinite approve to vault of this token
+        emit PoolRegistered(pool);
         return _registerPoolBalance(pool, tokens.length);
     }
 
+
+    event FactoryAddressUpdate(address indexed newFactoryAddress);
     function setFactoryAddress(
         address factoryAddress
     )
         external
         onlyManager
     {
+        _setFactoryAddress(factoryAddress);
+    }
+    function _setFactoryAddress(
+        address factoryAddress
+    )
+        internal
+    {
+        require(
+            factoryAddress != address(0),
+            "Factory address cannot be zero"
+        );
+        emit FactoryAddressUpdate(factoryAddress);
         weightedPoolFactory = IFactory(factoryAddress);
     }
 

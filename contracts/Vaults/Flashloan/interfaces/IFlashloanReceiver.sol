@@ -10,7 +10,7 @@ interface IFlashloanReceiver {
     function receiveFlashLoan(
         IERC20[] memory tokens,
         uint256[] memory amounts,
-        uint256[] memory feeAmounts,
+        uint256[] memory fees,
         bytes memory userData
     ) external;
 }

@@ -19,6 +19,9 @@ interface IFlashloanManager {
 
 abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
 
+    event FeeReceiverUpdate(address indexed newFeeReceiver);
+    event FlashloanFeesUpdate(uint256 indexed newFlashloanFees);
+
     using FixedPoint for uint256;
 
     address feeReceiver;
@@ -78,6 +81,7 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
             newFeeReceiver != address(0),
             "Fee receiver cannot be zero address"
         );
+        emit FeeReceiverUpdate(newFeeReceiver);
         feeReceiver = newFeeReceiver;
     }
 
@@ -86,6 +90,11 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
     )
         internal
     {
+        require(
+            flashloanFees_ <= FixedPoint.ONE,
+            "Flashloan fees cannot be larger than 1e18"
+        );
+        emit FlashloanFeesUpdate(flashloanFees_);
         flashloanFee = flashloanFees_;
     }
 

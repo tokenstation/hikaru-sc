@@ -7,7 +7,7 @@ pragma solidity 0.8.6;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 library MiscUtils {
-    function checkUniqueness(uint256[] memory array) public pure returns (bool flag) {
+    function checkUniqueness(uint256[] memory array) internal pure returns (bool flag) {
         if (array.length == 1) return true;
 
         flag = true;
@@ -19,7 +19,7 @@ library MiscUtils {
         }
     }
 
-    function checkUniqueness(address[] memory array) public pure returns (bool flag) {
+    function checkUniqueness(address[] memory array) internal pure returns (bool flag) {
         if (array.length == 1) return true;
 
         flag = true;
@@ -31,7 +31,7 @@ library MiscUtils {
         }
     }
 
-    function checkUniqueness(IERC20[] memory array) public pure returns (bool flag) {
+    function checkUniqueness(IERC20[] memory array) internal pure returns (bool flag) {
         if (array.length == 1) return true;
 
         flag = true;
@@ -43,34 +43,34 @@ library MiscUtils {
         }
     }
 
-    function checkArrayLength(uint256 l1, uint256 l2) public pure {
+    function checkArrayLength(uint256 l1, uint256 l2) internal pure {
         require(
             l1 == l2,
             "Array length mismatch"
         );
     }
 
-    function checkArrayLength(uint256[] memory array1, address[] memory array2) public pure {
+    function checkArrayLength(uint256[] memory array1, address[] memory array2) internal pure {
         checkArrayLength(array1.length, array2.length);
     }
 
-    function checkArrayLength(address[] memory array1, uint256[] memory array2) public pure {
+    function checkArrayLength(address[] memory array1, uint256[] memory array2) internal pure {
         checkArrayLength(array1.length, array2.length);
     }
 
-    function checkArrayLength(uint256[] memory array1, uint256[] memory array2) public pure {
+    function checkArrayLength(uint256[] memory array1, uint256[] memory array2) internal pure {
         checkArrayLength(array1.length, array2.length);
     }
 
-    function checkArrayLength(address[] memory array1, address[] memory array2) public pure {
+    function checkArrayLength(address[] memory array1, address[] memory array2) internal pure {
         checkArrayLength(array1.length, array2.length);
     }
 
-    function checkArrayLength(IERC20[] memory array1, address[] memory array2) public pure {
+    function checkArrayLength(IERC20[] memory array1, address[] memory array2) internal pure {
         checkArrayLength(array1.length, array2.length);
     }
 
-    function checkArrayLength(IERC20[] memory array1, uint256[] memory array2) public pure {
+    function checkArrayLength(IERC20[] memory array1, uint256[] memory array2) internal pure {
         checkArrayLength(array1.length, array2.length);
     }
 }

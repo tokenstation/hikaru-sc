@@ -1,0 +1,15 @@
+# Node js related directories and files
+node_modules
+package.lock
+package-lock.json
+yarn.lock
+
+# Solidity compilers and build directories
+soljson*
+bin
+build
+tenderly.yaml
+
+# Directories of IDE
+.vscode
+.idea 
