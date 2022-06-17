@@ -164,15 +164,20 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     )
         internal
         view
-        returns (uint256 lpAmount)
+        returns (uint256 lpAmount, uint256[] memory fees)
     {
-        (lpAmount, ) = WeightedMath._calcBptOutGivenExactTokensIn(
+        address[] memory tokens = _getTokens();
+        (lpAmount, fees) = WeightedMath._calcBptOutGivenExactTokensIn(
             _getNormalizedBalances(balances), 
             _getWeights(), 
             _getNormalizedBalances(amounts_),
             totalSupply(),
             swapFee
         );
+
+        for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
+            fees[tokenId] = _denormalizeAmount(fees[tokenId], tokens[tokenId]);
+        }
     }
 
     function _calculateExitPool(
@@ -201,10 +206,11 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     )
         internal
         view
-        returns (uint256[] memory amountsOut)
+        returns (uint256[] memory amountsOut, uint256[] memory fees)
     {
         amountsOut = new uint256[](N_TOKENS);
-        (uint256 amountOut,) = WeightedMath._calcTokenOutGivenExactBptIn(
+        fees = new uint256[](N_TOKENS);
+        (uint256 amountOut, uint256 fee) = WeightedMath._calcTokenOutGivenExactBptIn(
             _normalizedBalance(balances, token), 
             _getWeight(token), 
             lpAmount, 
@@ -212,7 +218,9 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
             swapFee
         );
         amountOut = _denormalizeAmount(amountOut, token);
+        fee = _denormalizeAmount(fee, token);
         amountsOut[_getTokenId(token)] = amountOut;
+        fees[_getTokenId(token)] = fee;
     }
 
     function _postJoinExit(
