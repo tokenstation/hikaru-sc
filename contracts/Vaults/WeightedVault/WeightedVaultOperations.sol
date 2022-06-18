@@ -62,7 +62,7 @@ abstract contract WeightedOperations is
         view
         returns (uint256 amountOut)
     {
-        (amountOut, ) = _calculateSwap(pool, tokenIn, tokenOut, swapAmount, true);
+        amountOut = _calculateSwap(pool, tokenIn, tokenOut, swapAmount, true);
     }
 
     function buyTokens(
@@ -101,7 +101,7 @@ abstract contract WeightedOperations is
         view 
         returns (uint256 amountIn)
     {
-        (amountIn, ) = _calculateSwap(pool, tokenIn, tokenOut, amountOut, false);
+        amountIn = _calculateSwap(pool, tokenIn, tokenOut, amountOut, false);
     }   
 
     function joinPool(

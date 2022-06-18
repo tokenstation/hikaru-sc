@@ -12,6 +12,7 @@ import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeig
 import { SingleManager } from "../../utils/SingleManager.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
 import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
+import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 
 // TODO: systematize imports
 contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, SingleManager {
@@ -22,9 +23,11 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
     constructor(
         address weightedPoolFactory_,
         uint256 flashloanFee_,
-        address flashloanFeeReceiver_
+        address flashloanFeeReceiver_,
+        uint256 protocolFee_
     )
         WeightedOperations(weightedPoolFactory_)
+        ProtocolFees(protocolFee_)
         Flashloan(flashloanFeeReceiver_, flashloanFee_)
         SingleManager(msg.sender)
     {
@@ -87,6 +90,30 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         onlyManager
     {
         _setFeeReceiver(feeReceiver_);
+    }
+
+    function setProtocolFee(
+        uint256 protocolFee_
+    )
+        external
+        virtual
+        override
+        onlyManager
+    {
+        _setProtocolFee(protocolFee_);
+    }
+
+    function withdrawDeductedFees(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address[] memory to
+    ) 
+        external 
+        virtual
+        override
+        onlyManager
+    {
+        _withdrawDeductedFees(tokens, amounts, to);
     }
 
     function _poolOfCorrectType(address poolAddress)
