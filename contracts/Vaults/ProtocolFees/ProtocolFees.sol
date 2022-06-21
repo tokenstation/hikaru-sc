@@ -63,12 +63,12 @@ abstract contract ProtocolFees {
         protocolFee = newProtocolFee;
     }
 
-    function withdrawDeductedFees(
+    function withdrawCollectedFees(
         address[] memory tokens,
         uint256[] memory amounts,
         address[] memory to
     ) external virtual;
-    function _withdrawDeductedFees(
+    function _withdrawCollectedFees(
         address[] memory tokens,
         uint256[] memory amounts,
         address[] memory to
@@ -76,8 +76,13 @@ abstract contract ProtocolFees {
         internal
     {
         for (uint256 id = 0; id < tokens.length; id++) {
+            require(
+                amounts[id] <= collectedFees[tokens[id]],
+                "Cannot withdraw more than accumulated"
+            );
             IERC20 token = IERC20(tokens[id]);
             token.transferToUser(to[id], amounts[id]);
+            collectedFees[tokens[id]] -= amounts[id];
         }
     }
 }

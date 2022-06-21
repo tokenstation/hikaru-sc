@@ -67,8 +67,6 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
             _transferTo(tokenOut, receiver, calculationResult) :
             _transferFrom(tokenIn, user, calculationResult);
 
-        fee = _deductFee(tokenIn, fee, protocolFee);
-
         uint256 tokenInBalanceDelta = exactIn ?
             amount - _protocolFee : 
             calculationResult - _protocolFee;
@@ -227,7 +225,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     {
         IWeightedStorage poolStorage = IWeightedStorage(pool);
         amounts_ = new uint256[](poolStorage.getNTokens());
-        for (uint256 tokenId = 0; tokenId < amounts_.length; tokenId++) {
+        for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             amounts_[poolStorage.getTokenId(tokens[tokenId])] = amounts[tokenId];
         }
     }

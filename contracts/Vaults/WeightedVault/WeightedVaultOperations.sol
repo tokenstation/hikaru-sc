@@ -4,7 +4,7 @@
 
 pragma solidity 0.8.6;
 
-import { ISellTokens, IBuyTokens, IFullPoolJoin, IPartialPoolJoin, IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IOperations.sol";
+import { ISellTokens, IBuyTokens, IFullPoolJoin, IPartialPoolJoin, IJoinPoolSingleToken, IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IOperations.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
@@ -14,6 +14,7 @@ abstract contract WeightedOperations is
     IBuyTokens, 
     IFullPoolJoin, 
     IPartialPoolJoin, 
+    IJoinPoolSingleToken,
     IFullPoolExit, 
     IExitPoolSingleToken,
     WeightedVaultPoolOperations 
@@ -131,7 +132,6 @@ abstract contract WeightedOperations is
         lpAmount = IWeightedPool(pool).calculateJoin(balances, amounts);
     }
 
-
     function partialPoolJoin(
         address pool,
         address[] memory tokens,
@@ -162,6 +162,46 @@ abstract contract WeightedOperations is
         returns (uint256 lpAmount)
     {
         uint256[] memory balances = _getPoolBalances(pool);
+        lpAmount = IWeightedPool(pool).calculateJoin(
+            balances, 
+            _createAmountsArrayFromTokens(pool, tokens, amounts)
+        );
+    }
+
+    function singleTokenPoolJoin(
+        address pool,
+        address token,
+        uint256 amount,
+        address receiver,
+        uint64 deadline
+    ) 
+        external 
+        override
+        returns (uint256 lpAmount)
+    {
+        _preOpChecks(pool, deadline);
+        address[] memory tokens = new address[](1); tokens[0] = token;
+        uint256[] memory amounts = new uint256[](1); amounts[0] = amount;
+        return _joinPool(
+            pool, 
+            _createAmountsArrayFromTokens(pool, tokens, amounts), 
+            receiver
+        );
+    }
+
+    function calculateSingleTokenPoolJoin(
+        address pool,
+        address token,
+        uint256 amount
+    ) 
+        external 
+        override
+        view 
+        returns (uint256 lpAmount)
+    {
+        uint256[] memory balances = _getPoolBalances(pool);
+        address[] memory tokens = new address[](1);  tokens[0] = token;
+        uint256[] memory amounts = new uint256[](1); amounts[0] = amount;
         lpAmount = IWeightedPool(pool).calculateJoin(
             balances, 
             _createAmountsArrayFromTokens(pool, tokens, amounts)

@@ -31,6 +31,7 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         Flashloan(flashloanFeeReceiver_, flashloanFee_)
         SingleManager(msg.sender)
     {
+        
     }
 
     event PoolRegistered(address indexed poolAddress);
@@ -103,7 +104,7 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         _setProtocolFee(protocolFee_);
     }
 
-    function withdrawDeductedFees(
+    function withdrawCollectedFees(
         address[] memory tokens,
         uint256[] memory amounts,
         address[] memory to
@@ -113,16 +114,6 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         override
         onlyManager
     {
-        _withdrawDeductedFees(tokens, amounts, to);
-    }
-
-    function _poolOfCorrectType(address poolAddress)
-        internal
-        view
-    {
-        require(
-            weightedPoolFactory.checkPoolAddress(poolAddress),
-            "Pool is not registered in factory"
-        );
+        _withdrawCollectedFees(tokens, amounts, to);
     }
 }

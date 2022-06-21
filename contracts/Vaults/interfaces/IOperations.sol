@@ -78,6 +78,22 @@ interface IPartialPoolJoin {
     ) external view returns (uint256 lpAmount);
 }
 
+interface IJoinPoolSingleToken {
+    function singleTokenPoolJoin(
+        address pool,
+        address token,
+        uint256 amount,
+        address receiver,
+        uint64 deadline
+    ) external returns (uint256 lpAmount);
+
+    function calculateSingleTokenPoolJoin(
+        address pool,
+        address token,
+        uint256 amount
+    ) external view returns (uint256 lpAmount);
+}
+
 interface IFullPoolExit {
     function exitPool(
         address pool,

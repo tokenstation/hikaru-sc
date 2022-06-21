@@ -154,18 +154,10 @@ contract('WeightedPool', async(accounts) => {
             const txRes = await weightedVault.joinPool(
                 pool.address,
                 amounts,
+                initializer,
                 deadline,
                 from(initializer)
             );
-
-            // TODO: check what can be done with txRes without BN array modifications
-            // checkDepositEvent(
-            //     txRes,
-            //     pool.address,
-            //     expectedLPAmount,
-            //     amounts,
-            //     initializer
-            // )
 
             const finalBalances = await getBalancesForAddresses(addresses, tokens);
             checkBNDeltas(initialBalances, finalBalances, deltas)
@@ -200,19 +192,20 @@ contract('WeightedPool', async(accounts) => {
             const watchAddresses = [joiner, weightedVault.address];
             const deadline = getDeadline();
 
-            const initJoinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
+            const joinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
             const initialBalances = await getBalancesForAddresses(watchAddresses, tokens);
 
             const tx = await weightedVault.joinPool(
                 pool.address,
                 amounts,
+                joiner,
                 deadline,
                 from(joiner)
             );
 
             const finalBalances = await getBalancesForAddresses(watchAddresses, tokens);
             checkBNDeltas(initialBalances, finalBalances, [joinerAmounts, amounts]);
-            await postJoinChecks(initJoinInfo);
+            await postJoinChecks(joinInfo);
         })
 
         it('Enter pool using some tokens', async() => {
@@ -224,19 +217,29 @@ contract('WeightedPool', async(accounts) => {
             const watchAddresses = [joiner, weightedVault.address];
             const deadline = getDeadline();
 
-            const initJoinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
+            const joinTokens = []; const joinAmounts = [];
+            for(const tokenInfo of amounts.entries()) {
+                const key = tokenInfo[0]; const val = tokenInfo[1];
+                if (val.eq(toBN(0))) continue;
+                joinTokens.push(tokens[key]);
+                joinAmounts.push(amounts[key]);
+            }
+
+            const joinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
             const initialBalances = await getBalancesForAddresses(watchAddresses, tokens);
 
-            const tx = await weightedVault.joinPool(
+            const tx = await weightedVault.partialPoolJoin(
                 pool.address,
-                amounts,
+                joinTokens,
+                joinAmounts,
+                joiner,
                 deadline,
                 from(joiner)
             );
 
             const finalBalances = await getBalancesForAddresses(watchAddresses, tokens);
             checkBNDeltas(initialBalances, finalBalances, [joinerAmounts, amounts]);
-            await postJoinChecks(initJoinInfo);
+            await postJoinChecks(joinInfo);
         })
 
         it('Enter pool using one token', async() => {
@@ -249,19 +252,21 @@ contract('WeightedPool', async(accounts) => {
             const joinerAmounts = amounts.map((val) => val.mul(toBN(-1)));
             const deadline = getDeadline();
 
-            const initJoinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
+            const joinInfo = await prepareJoinInfo(pool.address, amounts, joiner);
             const initialBalances = await getBalancesForAddresses(watchAddresses, tokens);
 
-            const tx = await weightedVault.joinPool(
+            const tx = await weightedVault.singleTokenPoolJoin(
                 pool.address,
-                amounts,
+                tokens[randomId],
+                amounts[randomId],
+                joiner,
                 deadline,
                 from(joiner)
             );
 
             const finalBalances = await getBalancesForAddresses(watchAddresses, tokens);
             checkBNDeltas(initialBalances, finalBalances, [joinerAmounts, amounts]);
-            await postJoinChecks(initJoinInfo);
+            await postJoinChecks(joinInfo);
         })
     })
 
@@ -292,18 +297,20 @@ contract('WeightedPool', async(accounts) => {
                 [swapInitInfo.swapAmount, swapInitInfo.expectedResult.mul(toBN(-1))]
             ]
 
-            const tx = await weightedVault.swap(
+            const tx = await weightedVault.sellTokens(
                 pool.address,
                 swapInitInfo.tokenIn,
                 swapInitInfo.tokenOut,
                 swapInitInfo.swapAmount,
                 toBN(1),
+                swapper,
                 deadline,
                 from(swapper)
             );
 
             const finalBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
             checkBNDeltas(initialBalances, finalBalances, deltas);
+            await postSwapChecks(swapInitInfo);
         })
 
         it('Perfrom swap with calculating tokenIn amount', async() => {
@@ -320,46 +327,20 @@ contract('WeightedPool', async(accounts) => {
                 [swapInitInfo.expectedResult, swapInitInfo.swapAmount.mul(toBN(-1))]
             ]
 
-            const tx = await weightedVault.swapExactOut(
+            const tx = await weightedVault.buyTokens(
                 pool.address,
                 swapInitInfo.tokenIn,
                 swapInitInfo.tokenOut,
                 swapInitInfo.swapAmount,
                 UINT256_MAX,
+                swapper,
                 deadline,
                 from(swapper)
             );
 
             const finalBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
             checkBNDeltas(initialBalances, finalBalances, deltas);
-        })
-
-        it('Perform default swap using vault', async() => {
-            const amount = toBN(1e4);
-            const deadline = getDeadline();
-
-            const swapInitInfo = await prepareSwapInfo(pool.address, amount, true)
-
-            const watchAddresses = [swapper, weightedVault.address];
-            const watchTokens = [swapInitInfo.tokenIn, swapInitInfo.tokenOut];
-            const initialBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
-            const deltas = [
-                [swapInitInfo.swapAmount.mul(toBN(-1)), swapInitInfo.expectedResult],
-                [swapInitInfo.swapAmount, swapInitInfo.expectedResult.mul(toBN(-1))]
-            ]
-
-            const tx = await weightedVault.swap(
-                pool.address,
-                swapInitInfo.tokenIn,
-                swapInitInfo.tokenOut,
-                swapInitInfo.swapAmount,
-                toBN(1),
-                deadline,
-                from(swapper)
-            );
-
-            const finalBalances = await getBalancesForAddresses(watchAddresses, watchTokens);
-            checkBNDeltas(initialBalances, finalBalances, deltas);
+            await postSwapChecks(swapInitInfo);
         })
     })
 
@@ -368,12 +349,17 @@ contract('WeightedPool', async(accounts) => {
             const lpAmount = await getLPBalance(pool.address, joiner, toBN(10));
             const deadline = getDeadline();
             
+            const exitObj = await prepareExitInfo(pool.address, lpAmount, joiner);
+
             const tx = await weightedVault.exitPool(
                 pool.address,
                 lpAmount,
+                joiner,
                 deadline,
                 from(joiner)
             );
+
+            await postExitChecks(exitObj);
         })
 
         it('Exit pool using one token', async() => {
@@ -383,13 +369,39 @@ contract('WeightedPool', async(accounts) => {
             const tokenOut = tokens[randomId];
             const deadline = getDeadline();
 
+            const exitObj = await prepareExitInfo(pool.address, lpAmount, joiner, tokenOut);
+
             const tx = await weightedVault.exitPoolSingleToken(
                 pool.address,
                 lpAmount,
                 tokenOut,
+                joiner,
                 deadline,
                 from(joiner)
             );
+
+            await postExitChecks(exitObj);
+        })
+    })
+
+    describe('Withdraw protocol fees', async() => {
+        it('withdraw to clear account from manager', async() => {
+            const receiver = accounts[9];
+            const tokens = await pool.getTokens.call();
+            const amounts = [];
+            for (const address of tokens) {
+                amounts.push(
+                    toBN(await weightedVault.collectedFees.call(address))
+                )
+            }
+            const initBalances = await getBalancesForAddress(receiver, tokens);
+
+            const to = new Array(amounts.length).fill(receiver);
+            const tx = await weightedVault.withdrawCollectedFees(tokens, amounts, to);
+
+            const finalBalances = await getBalancesForAddress(receiver, tokens);
+
+            checkBNDeltas([initBalances], [finalBalances], [amounts]);
         })
     })
 
@@ -426,6 +438,23 @@ contract('WeightedPool', async(accounts) => {
         for(let tokenId = 0; tokenId < multipliers.length; tokenId++) {
             resultAmounts.push(
                 amounts[tokenId].mul(toBN(multipliers[tokenId]))
+            )
+        }
+        return resultAmounts;
+    }
+
+    /**
+     * @param {String} poolAddress 
+     * @param {BN[]} amounts 
+     * @returns {Promise<BN>}
+     */
+    async function denormalizeAmounts(poolAddress, amounts) {
+        const poolInstance = await WeightedPool.at(poolAddress);
+        const multipliers = await poolInstance.getMultipliers.call();
+        const resultAmounts = [];
+        for (let id = 0; id < multipliers.length; id++) {
+            resultAmounts.push(
+                amounts[id].div(toBN(multipliers[id]))
             )
         }
         return resultAmounts;
@@ -496,6 +525,106 @@ contract('WeightedPool', async(accounts) => {
 
     /**
      * @param {String} poolAddress 
+     * @param {BN} lpAmount 
+     * @param {String} user 
+     * @param {String?} token 
+     * @returns {Promise<Object>}
+     */
+    async function prepareExitInfo(poolAddress, lpAmount, user, token) {
+        const poolInstance = await WeightedPool.at(poolAddress);
+        const poolLPToken = await ERC20Mock.at(poolAddress);
+
+        const tokens = await poolInstance.getTokens.call();
+        const protocolFee = toBN(await weightedVault.protocolFee.call());
+        const weights = await poolInstance.getWeights.call();
+        const poolBalances = await weightedVault.getPoolBalances.call(poolAddress);
+        const normalizedBalances = await getTokenAmountsWithMultipliers(poolAddress, poolBalances);
+        const initialLPTS = toBN(await poolLPToken.totalSupply.call());
+        const initialUserLPBalance = toBN(await poolLPToken.balanceOf.call(user));
+        const swapFee = toBN(await poolInstance.swapFee.call());
+        let resObj = {
+            amountsOut: new Array(tokens.length).fill(toBN(0)),
+            fee: new Array(tokens.length).fill(toBN(0)),
+            protocolFees: new Array(tokens.length).fill(toBN(0)),
+            balanceChanges: new Array(tokens.length).fill(toBN(0))
+        };
+        if (token) {
+            const tokenId = tokens.indexOf(token);
+            resObj = await testMath.calcExitSingleToken(
+                normalizedBalances[tokenId],
+                weights[tokenId],
+                lpAmount,
+                initialLPTS,
+                swapFee,
+                protocolFee
+            )
+            resObj.amountsOut = await denormalizeAmounts(poolAddress, fullArrayFromTokens(tokens, [token], [resObj.amountOut]));
+            resObj.fee = await denormalizeAmounts(poolAddress, fullArrayFromTokens(tokens, [token], [resObj.fee]));
+            resObj.protocolFees = await denormalizeAmounts(poolAddress, fullArrayFromTokens(tokens, [token], [resObj.pf]));
+            resObj.balanceChanges = await denormalizeAmounts(poolAddress, fullArrayFromTokens(tokens, [token], [resObj.balanceChange]));
+            
+        } else {
+            const amountsOut = await testMath.calcExit(
+                normalizedBalances,
+                lpAmount,
+                initialLPTS
+            )
+            resObj.amountsOut = await denormalizeAmounts(poolAddress, amountsOut);
+            resObj.balanceChanges = resObj.amountsOut.map((val) => val.mul(toBN(-1)));
+        }
+
+        const initBalances = (await weightedVault.getPoolBalances.call(poolAddress)).map((val) => toBN(val));
+        
+        const initialProtocolFees = [];
+        for (const tokenAddress of tokens) {
+            initialProtocolFees.push(
+                toBN(await weightedVault.collectedFees.call(tokenAddress))
+            );
+        }
+
+        return {
+            ...resObj,
+            poolAddress,
+            poolLPToken,
+            weights,
+            poolBalances,
+            normalizedBalances,
+            initialLPTS,
+            initialUserLPBalance,
+            swapFee,
+            initBalances,
+            initialProtocolFees,
+            lpAmount
+        }
+    }
+
+    /**
+     * 
+     * @param {Object} exitObj 
+     */
+    async function postExitChecks(exitObj) {
+        const finalLPTS = toBN(await exitObj.poolLPToken.totalSupply.call());
+        const finalUserLPBalance = toBN(await exitObj.poolLPToken.balanceOf.call(joiner)); 
+
+        expect(finalLPTS).to.eq.BN(exitObj.initialLPTS.sub(exitObj.lpAmount), 'Invalid total supply');
+        expect(finalUserLPBalance).to.eq.BN(exitObj.initialUserLPBalance.sub(exitObj.lpAmount), 'Invalid amount minted to user');
+
+        const poolBalances = (await weightedVault.getPoolBalances.call(exitObj.poolAddress)).map((val) => toBN(val));
+        checkBNDeltas([exitObj.initBalances], [poolBalances], [exitObj.balanceChanges]);
+
+        const poolInstance = await WeightedPool.at(exitObj.poolAddress);
+        const tokens = await poolInstance.getTokens.call();
+        const protocolFees = [];
+        for (const address of tokens) {
+            protocolFees.push(
+                toBN(await weightedVault.collectedFees.call(address))
+            );
+        }
+        checkBNDeltas([exitObj.initialProtocolFees], [protocolFees], [exitObj.protocolFees]);
+    }
+
+    /**
+     * @param {String} poolAddress 
      * @param {BN[]} amounts 
      * @param {String} user 
      * @returns 
@@ -504,6 +633,8 @@ contract('WeightedPool', async(accounts) => {
         const poolInstance = await WeightedPool.at(poolAddress);
         const poolLPToken = await ERC20Mock.at(poolAddress);
 
+        const tokens = await poolInstance.getTokens.call();
+        const protocolFee = toBN(await weightedVault.protocolFee.call());
         const normalizedAmounts = await getTokenAmountsWithMultipliers(poolAddress, amounts);
         const weights = await poolInstance.getWeights.call();
         const poolBalances = await weightedVault.getPoolBalances.call(poolAddress);
@@ -511,17 +642,30 @@ contract('WeightedPool', async(accounts) => {
         const initialLPTS = toBN(await poolLPToken.totalSupply.call());
         const initialUserLPBalance = toBN(await poolLPToken.balanceOf.call(user));
         const swapFee = toBN(await poolInstance.swapFee.call());
-        const expectedLPAmount = toBN(
-            await testMath.calcJoin(
-                normalizedAmounts,
-                normalizedBalances,
-                weights,
-                initialLPTS,
-                swapFee
-            )
-        );
+        const calcRes = await testMath.calcJoin(
+            normalizedAmounts,
+            normalizedBalances,
+            weights,
+            initialLPTS,
+            swapFee,
+            protocolFee
+        )
+        const balanceChanges = await denormalizeAmounts(poolAddress, calcRes.balanceChanges);
+        const fee = await denormalizeAmounts(poolAddress, calcRes.fee);
+        const protocolFees = await denormalizeAmounts(poolAddress, calcRes.pf);
+        const expectedLPAmount = toBN(calcRes.lpAmount);
+
+        const initBalances = (await weightedVault.getPoolBalances.call(poolAddress)).map((val) => toBN(val));
+        
+        const initialProtocolFees = [];
+        for (const tokenAddress of tokens) {
+            initialProtocolFees.push(
+                toBN(await weightedVault.collectedFees.call(tokenAddress))
+            );
+        }
 
         return {
+            poolAddress,
             poolLPToken,
             normalizedAmounts,
             weights,
@@ -530,20 +674,38 @@ contract('WeightedPool', async(accounts) => {
             initialLPTS,
             initialUserLPBalance,
             swapFee,
-            expectedLPAmount
+            expectedLPAmount,
+            balanceChanges,
+            fee,
+            protocolFees,
+            initBalances,
+            initialProtocolFees
         }
     }
 
     /**
      * @param {String} poolAddress 
-     * @param {Object} initInfo 
+     * @param {Object} joinInfo 
      */
-    async function postJoinChecks(initJoinInfo) {
-        const finalLPTS = toBN(await initJoinInfo.poolLPToken.totalSupply.call());
-        const finalUserLPBalance = toBN(await initJoinInfo.poolLPToken.balanceOf.call(joiner)); 
+    async function postJoinChecks(joinInfo) {
+        const finalLPTS = toBN(await joinInfo.poolLPToken.totalSupply.call());
+        const finalUserLPBalance = toBN(await joinInfo.poolLPToken.balanceOf.call(joiner)); 
 
-        expect(finalLPTS).to.eq.BN(initJoinInfo.initialLPTS.add(initJoinInfo.expectedLPAmount), 'Invalid total supply');
-        expect(finalUserLPBalance).to.eq.BN(initJoinInfo.initialUserLPBalance.add(initJoinInfo.expectedLPAmount), 'Invalid amount minted to user');
+        expect(finalLPTS).to.eq.BN(joinInfo.initialLPTS.add(joinInfo.expectedLPAmount), 'Invalid total supply');
+        expect(finalUserLPBalance).to.eq.BN(joinInfo.initialUserLPBalance.add(joinInfo.expectedLPAmount), 'Invalid amount minted to user');
+
+        const poolBalances = (await weightedVault.getPoolBalances.call(joinInfo.poolAddress)).map((val) => toBN(val));
+        checkBNDeltas([joinInfo.initBalances], [poolBalances], [joinInfo.balanceChanges]);
+
+        const poolInstance = await WeightedPool.at(joinInfo.poolAddress);
+        const tokens = await poolInstance.getTokens.call();
+        const protocolFees = [];
+        for (const address of tokens) {
+            protocolFees.push(
+                toBN(await weightedVault.collectedFees.call(address))
+            );
+        }
+        checkBNDeltas([joinInfo.initialProtocolFees], [protocolFees], [joinInfo.protocolFees]);
     }
 
     /**
@@ -552,7 +714,11 @@ contract('WeightedPool', async(accounts) => {
      * @param {Boolean} exactIn 
      */
     async function prepareSwapInfo(poolAddress, amount, exactIn) {
+        
+
         const poolInstance = await WeightedPool.at(poolAddress);
+
+        const protocolFee = await weightedVault.protocolFee.call();
         const poolBalances = (await weightedVault.getPoolBalances.call(poolAddress)).map((val) => toBN(val));
         const normalizedBalances = await getTokenAmountsWithMultipliers(poolAddress, poolBalances);
         const tokens = await poolInstance.getTokens.call();
@@ -561,48 +727,78 @@ contract('WeightedPool', async(accounts) => {
         const swapFee = await poolInstance.swapFee.call();
         const [tokenInIndex, tokenOutIndex] = getTwoRandomNumbers(tokens.length);
         const [tokenIn, tokenOut] = [tokens[tokenInIndex], tokens[tokenOutIndex]];
+        const swapTokens = [tokenIn, tokenOut];
         const swapAmount = await getTokenAmountWithDecimals(
             exactIn ? tokenIn : tokenOut,
             amount
         );
 
-        let expectedResult;
-
+        let resObj = {};
+        let expectedObj = {};
         if (exactIn) {
-            expectedResult = toBN(
-                await testMath.calcOutGivenIn(
-                    normalizedBalances[tokenInIndex],
-                    weights[tokenInIndex],
-                    normalizedBalances[tokenOutIndex],
-                    weights[tokenOutIndex],
-                    swapAmount.mul(multipliers[tokenInIndex]),
-                    swapFee
-                )
+            expectedObj = await testMath.calcOutGivenIn(
+                normalizedBalances[tokenInIndex],
+                weights[tokenInIndex],
+                normalizedBalances[tokenOutIndex],
+                weights[tokenOutIndex],
+                swapAmount.mul(multipliers[tokenInIndex]),
+                swapFee,
+                protocolFee
             );
-            expectedResult = expectedResult.div(multipliers[tokenOutIndex]);
+            resObj.expectedResult = expectedObj.amountOut.div(multipliers[tokenOutIndex]);
         } else {
-            expectedResult = toBN(
-                await testMath.calcInGivenOut(
-                    normalizedBalances[tokenInIndex],
-                    weights[tokenInIndex],
-                    normalizedBalances[tokenOutIndex],
-                    weights[tokenOutIndex],
-                    swapAmount.mul(multipliers[tokenOutIndex]),
-                    swapFee
-                )
+            expectedObj = await testMath.calcInGivenOut(
+                normalizedBalances[tokenInIndex],
+                weights[tokenInIndex],
+                normalizedBalances[tokenOutIndex],
+                weights[tokenOutIndex],
+                swapAmount.mul(multipliers[tokenOutIndex]),
+                swapFee,
+                protocolFee
+            )
+            resObj.expectedResult = expectedObj.amountIn.div(multipliers[tokenInIndex]);
+        }
+
+        resObj.fee = await denormalizeAmounts(poolAddress, fullArrayFromTokens(tokens, [tokenIn], [expectedObj.fee]));
+        resObj.balanceChanges = await denormalizeAmounts(poolAddress, fullArrayFromTokens(tokens, swapTokens, expectedObj.balanceChanges));
+        resObj.protocolFees = await denormalizeAmounts(poolAddress, fullArrayFromTokens(tokens, [tokenIn], [expectedObj.pf]));
+
+        const initialProtocolFees = [];
+        for (const tokenAddress of tokens) {
+            initialProtocolFees.push(
+                toBN(await weightedVault.collectedFees.call(tokenAddress))
             );
-            expectedResult = expectedResult.div(multipliers[tokenInIndex]);
         }
 
         return {
+            ...resObj,
             tokens,
             tokenIn,
             tokenOut,
             swapAmount,
             poolBalances,
             swapFee,
-            expectedResult
+            poolAddress,
+            initialProtocolFees
         }
+    }
+
+    /**
+     * @param {Object} swapInfo 
+     */
+    async function postSwapChecks(swapInfo) {
+        const poolBalances = (await weightedVault.getPoolBalances.call(swapInfo.poolAddress)).map((val) => toBN(val));
+        checkBNDeltas([swapInfo.poolBalances], [poolBalances], [swapInfo.balanceChanges]);
+
+        const poolInstance = await WeightedPool.at(swapInfo.poolAddress);
+        const tokens = await poolInstance.getTokens.call();
+        const protocolFees = [];
+        for (const address of tokens) {
+            protocolFees.push(
+                toBN(await weightedVault.collectedFees.call(address))
+            );
+        }
+        checkBNDeltas([swapInfo.initialProtocolFees], [protocolFees], [swapInfo.protocolFees]);
     }
 
     /**
@@ -613,7 +809,10 @@ contract('WeightedPool', async(accounts) => {
     function checkBNDeltas(init, finish, delta) {
         for (let id = 0; id < init.length; id++) {
             for(let iid = 0; iid < init[id].length; iid++) {
-                expect(finish[id][iid]).to.eq.BN(init[id][iid].add(delta[id][iid]), "Invalid delta")
+                // Due to rounding errors numbers may be off by 1
+                const change = finish[id][iid].sub(init[id][iid]);
+                const mismatch = change.sub(delta[id][iid]).abs();
+                expect(mismatch).to.lte.BN(toBN(1), "Invalid delta");
             }
         }
     }
@@ -650,6 +849,25 @@ contract('WeightedPool', async(accounts) => {
             )
         }
         return balances;
+    }
+
+    /**
+     * @param {String[]} tokens 
+     * @param {String[]} swapTokens 
+     * @param {BN[]} amounts 
+     * @returns 
+     */
+    function fullArrayFromTokens(tokens, swapTokens, amounts) {
+        const fullArray = [];
+        for (const token of tokens) {
+            let index = swapTokens.indexOf(token);
+            fullArray.push(
+                index !== -1 ? 
+                    amounts[index] : 
+                    toBN(0)
+            );
+        }
+        return fullArray;
     }
 })
 

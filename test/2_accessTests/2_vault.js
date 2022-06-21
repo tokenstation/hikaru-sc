@@ -21,7 +21,7 @@ contract('WeightedVault', async(accounts) => {
         const admin = accounts[0];
         const randomUser = accounts[1];
 
-        it('Change factory address from random user', async() => {
+        it('Change factory address as random user', async() => {
             await expectRevert.unspecified(
                 weightedVault.setFactoryAddress(weightedVault.address, from(randomUser)),
                 "Only manager can execute this function."
@@ -32,7 +32,7 @@ contract('WeightedVault', async(accounts) => {
             expectEvent(tx, 'FactoryAddressUpdate', {newFactoryAddress: weightedVault.address});
         })
 
-        it('Change flashloan fees from random user', async() => {
+        it('Change flashloan fees as random user', async() => {
             const flashloanFees = toBN(await weightedVault.flashloanFee.call()).add(toBN(1));
             await expectRevert.unspecified(
                 weightedVault.setFlashloanFees(flashloanFees, from(randomUser)),
@@ -45,7 +45,7 @@ contract('WeightedVault', async(accounts) => {
             expectEvent(tx, 'FlashloanFeesUpdate', {newFlashloanFees: flashloanFees});
         })
 
-        it('Change flashloan fee receiver from random user', async() => {
+        it('Change flashloan fee receiver as random user', async() => {
             await expectRevert.unspecified(
                 weightedVault.setFeeReceiver(randomUser, from(randomUser)),
                 "Only manager can execute this function."
@@ -56,10 +56,36 @@ contract('WeightedVault', async(accounts) => {
             expectEvent(tx, 'FeeReceiverUpdate', {newFeeReceiver: randomUser});
         })
 
-        it('Try to register pool from random user', async() => {
+        it('Change protocol fee as random user', async() => {
+            const protocolFee = toBN(await weightedVault.protocolFee.call()).add(toBN(1));
+            await expectRevert.unspecified(
+                weightedVault.setProtocolFee(protocolFee, from(randomUser))
+            );
+        })
+        it('Change protocol fee', async() => {
+            const protocolFee = toBN(await weightedVault.protocolFee.call()).add(toBN(1));
+            const tx = await weightedVault.setProtocolFee(protocolFee, from(admin));
+            expectEvent(tx, 'ProtocolFeeUpdate', {newProtocolFee: protocolFee});
+        })
+
+        it('Try to register pool as random user', async() => {
             await expectRevert.unspecified(
                 weightedVault.registerPool(randomUser, [randomUser], from(randomUser)),
                 "Only manager can execute this function."
+            )
+        })
+
+        it('Withdraw collected fees as random user', async() => {
+            const tokens = [accounts[3], accounts[4]];
+            const amounts = [toBN(100), toBN(100)];
+            const to = [randomUser, randomUser];
+            await expectRevert.unspecified(
+                weightedVault.withdrawCollectedFees(
+                    tokens,
+                    amounts,
+                    to,
+                    from(randomUser)
+                )
             )
         })
     })
