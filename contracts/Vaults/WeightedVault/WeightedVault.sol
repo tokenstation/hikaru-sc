@@ -5,16 +5,17 @@
 pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { WeightedOperations } from "./WeightedVaultOperations.sol";
 import { IFactory } from "../../Factories/interfaces/IFactory.sol";
-import { IVault } from "../interfaces/IVault.sol";
 import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
-import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
+import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
+import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 
 // TODO: systematize imports
-contract WeightedVault is IVault, IWeightedVault, SingleManager, WeightedVaultPoolOperations {
+contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, SingleManager {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;
@@ -22,44 +23,15 @@ contract WeightedVault is IVault, IWeightedVault, SingleManager, WeightedVaultPo
     constructor(
         address weightedPoolFactory_,
         uint256 flashloanFee_,
-        address flashloanFeeReceiver_
+        address flashloanFeeReceiver_,
+        uint256 protocolFee_
     )
-        WeightedVaultPoolOperations(weightedPoolFactory_)
+        WeightedOperations(weightedPoolFactory_)
+        ProtocolFees(protocolFee_)
         Flashloan(flashloanFeeReceiver_, flashloanFee_)
         SingleManager(msg.sender)
     {
-    }
-
-    function defaultSwap(
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 swapAmount,
-        uint256 minAmountOut,
-        uint64 deadline
-    ) 
-        external 
-        override
-        reentrancyGuard
-        returns (uint256 swapResult)
-    {
-        _preOpChecks(pool, deadline);
-        swapResult = _swap(pool, tokenIn, tokenOut, swapAmount, minAmountOut, true);
-    }
-
-    function calculateDefaultSwap(
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 swapAmount
-    ) 
-        external
-        override 
-        view 
-        returns (uint256 swapResult, uint256 feeAmount)
-    {
-        _poolOfCorrectType(pool);
-        (swapResult, feeAmount) = _calculateSwap(pool, tokenIn, tokenOut, swapAmount, true);
+        
     }
 
     event PoolRegistered(address indexed poolAddress);
@@ -121,13 +93,27 @@ contract WeightedVault is IVault, IWeightedVault, SingleManager, WeightedVaultPo
         _setFeeReceiver(feeReceiver_);
     }
 
-    function _poolOfCorrectType(address poolAddress)
-        internal
-        view
+    function setProtocolFee(
+        uint256 protocolFee_
+    )
+        external
+        virtual
+        override
+        onlyManager
     {
-        require(
-            weightedPoolFactory.checkPoolAddress(poolAddress),
-            "Pool is not registered in factory"
-        );
+        _setProtocolFee(protocolFee_);
+    }
+
+    function withdrawCollectedFees(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address[] memory to
+    ) 
+        external 
+        virtual
+        override
+        onlyManager
+    {
+        _withdrawCollectedFees(tokens, amounts, to);
     }
 }

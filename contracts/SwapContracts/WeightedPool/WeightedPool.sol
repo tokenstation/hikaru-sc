@@ -50,11 +50,11 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         external
         override
         view
-        returns (uint256 amountOut)
+        returns (uint256 amountOut, uint256 fee)
     {
         _onlyVault();
         _checkTokens(tokenIn, tokenOut);
-        (amountOut, ) = _calculateOutGivenIn(
+        (amountOut, fee) = _calculateOutGivenIn(
             balances,
             tokenIn,
             tokenOut,
@@ -76,11 +76,11 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         external
         override
         view
-        returns (uint256 amountIn)
+        returns (uint256 amountIn, uint256 fee)
     {
         _onlyVault();
         _checkTokens(tokenIn, tokenOut);
-        (amountIn, ) = _calculateInGivenOut(
+        (amountIn, fee) = _calculateInGivenOut(
             balances,
             tokenIn, 
             tokenOut, 
@@ -103,7 +103,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     )
         external
         override
-        returns(uint256 lpAmount)
+        returns(uint256 lpAmount, uint256[] memory fee)
     {
         _onlyVault();
         if (totalSupply() == 0) {
@@ -112,12 +112,16 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             // So it's necessary to provide all tokens
             
             lpAmount = _calculateInitialization(amounts_);
+            fee = new uint256[](N_TOKENS);
         } else {
-            lpAmount = _calculateJoinPool(balances, amounts_);
+            (lpAmount, fee) = _calculateJoinPool(balances, amounts_);
         }
 
         _postJoinExit(user, lpAmount, true);
     }
+
+    // TODO: _calcBptInGivenExactTokensOut
+    // Для выхода по части токенов, а не по всем/одному
 
     function exitPool(
         uint256[] memory balances,
@@ -126,11 +130,11 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     )
         external
         override
-        returns (uint256[] memory tokensReceived)
+        returns (uint256[] memory tokensReceived, uint256[] memory fees)
     {
         _onlyVault();
         tokensReceived = _calculateExitPool(balances, lpAmount);
-
+        fees = new uint256[](N_TOKENS);
         _postJoinExit(user, lpAmount, false);
     }
 
@@ -142,10 +146,10 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     )
         external
         override
-        returns (uint256[] memory tokenDeltas)
+        returns (uint256[] memory tokenDeltas, uint256[] memory fee)
     {
         _onlyVault();
-        tokenDeltas = _calculateExitSingleToken(balances, token, lpAmount);
+        (tokenDeltas, fee) = _calculateExitSingleToken(balances, token, lpAmount);
         _postJoinExit(user, lpAmount, false);
     }
 
@@ -163,10 +167,10 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         external
         override
         view
-        returns(uint256 swapResult, uint256 fee)
+        returns(uint256 swapResult)
     {
         _checkTokens(tokenIn, tokenOut);
-        (swapResult, fee) = exactIn ?
+        (swapResult, ) = exactIn ?
             _calculateOutGivenIn(
                 balances,
                 tokenIn,
@@ -192,7 +196,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         if (totalSupply() == 0) 
             return _calculateInitialization(amountsIn);
         else 
-            return _calculateJoinPool(balances, amountsIn);
+            (lpAmount, ) = _calculateJoinPool(balances, amountsIn);
     }
 
     function calculateExit(
@@ -218,7 +222,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         returns (uint256 amountOut)
     {
         uint256 tokenId = _getTokenId(token);
-        amountOut = _calculateExitSingleToken(balances, token, lpAmount)[tokenId];
+        uint256[] memory amountsOut = new uint256[](N_TOKENS);
+        (amountsOut, ) = _calculateExitSingleToken(balances, token, lpAmount);
+        amountOut = amountsOut[tokenId];
     }
 
 

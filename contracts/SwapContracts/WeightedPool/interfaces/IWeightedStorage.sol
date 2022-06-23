@@ -11,4 +11,5 @@ interface IWeightedStorage {
     function getTokens() external view returns (address[] memory tokens);
     function getWeights() external view returns (uint256[] memory weights);
     function getMultipliers() external view returns (uint256[] memory multipliers);
+    function getNTokens() external view returns (uint256);
 }

@@ -11,7 +11,7 @@ interface IWeightedPool {
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut
-    ) external returns (uint256 amountOut);
+    ) external returns (uint256 amountOut, uint256 fee);
 
     function swapExactOut(
         uint256[] memory balances,
@@ -19,26 +19,26 @@ interface IWeightedPool {
         address tokenOut,
         uint256 amountOut,
         uint256 maxAmountIn
-    ) external returns (uint256 amountIn);
+    ) external returns (uint256 amountIn, uint256 fee);
 
     function joinPool(
         uint256[] memory balances,
         address user,
         uint256[] memory amounts_
-    ) external returns(uint256 lpAmount);
+    ) external returns(uint256 lpAmount, uint256[] memory fee);
 
     function exitPool(
         uint256[] memory balances,
         address user,
         uint256 lpAmount
-    ) external returns (uint256[] memory tokensReceived);
+    ) external returns (uint256[] memory tokensReceived, uint256[] memory fee);
 
     function exitPoolSingleToken(
         uint256[] memory balances,
         address user,
         uint256 lpAmount,
         address token
-    ) external returns (uint256[] memory tokenDeltas);
+    ) external returns (uint256[] memory tokenDeltas, uint256[] memory fee);
 
     function calculateSwap(
         uint256[] memory balances,
@@ -46,7 +46,7 @@ interface IWeightedPool {
         address tokenOut,
         uint256 swapAmount,
         bool exactIn
-    ) external view returns(uint256 swapResult, uint256 fee);
+    ) external view returns(uint256 swapResult);
 
     function calculateJoin(
         uint256[] memory balances,

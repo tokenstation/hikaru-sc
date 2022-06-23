@@ -23,6 +23,10 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         revert("Unknown token");
     }
 
+    function getNTokens() external override view returns (uint256) {
+        return N_TOKENS;
+    }
+
     function getTokenId(address token) external override view returns (uint256 tokenId) {
         return _getTokenId(token);
     }
