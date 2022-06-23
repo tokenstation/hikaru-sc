@@ -4,7 +4,9 @@
 
 pragma solidity 0.8.6;
 
-import { ISellTokens, IBuyTokens, IFullPoolJoin, IPartialPoolJoin, IJoinPoolSingleToken, IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IOperations.sol";
+import { ISellTokens, IBuyTokens, IVirtualSwap, VirtualSwapInfo } from "../interfaces/ISwap.sol";
+import { IFullPoolJoin, IPartialPoolJoin, IJoinPoolSingleToken } from "../interfaces/IJoin.sol";
+import { IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IExit.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
@@ -12,6 +14,7 @@ import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeig
 abstract contract WeightedOperations is 
     ISellTokens, 
     IBuyTokens, 
+    IVirtualSwap,
     IFullPoolJoin, 
     IPartialPoolJoin, 
     IJoinPoolSingleToken,
@@ -104,6 +107,58 @@ abstract contract WeightedOperations is
     {
         amountIn = _calculateSwap(pool, tokenIn, tokenOut, amountOut, false);
     }   
+
+    function virtualSwap(
+        VirtualSwapInfo[] calldata swapRoute, 
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address receiver,
+        uint64 deadline
+    ) 
+        external
+        override
+        returns (uint256 amountOut)
+    {
+        _deadlineCheck(deadline);
+        amountOut = _virtualSwap(
+            swapRoute,
+            amountIn,
+            minAmountOut,
+            receiver
+        );
+    }
+
+    function calculateVirtualSwap(
+        VirtualSwapInfo[] calldata swapRoute,
+        uint256 amountIn
+    )
+        external
+        override
+        view
+        returns (uint256 amountOut)
+    {
+        amountOut = amountIn;
+        VirtualSwapInfo memory currentSwap;
+        for (uint256 id = 0; id < swapRoute.length; id++) {
+            if (
+                (id != swapRoute.length - 1) && 
+                (swapRoute.length != 1)
+            ) {
+                require(
+                    currentSwap.tokenOut == swapRoute[id+1].tokenIn,
+                    "Route contains mismatched tokens"
+                );
+            }
+            currentSwap = swapRoute[id];
+            amountOut = _calculateSwap(
+                currentSwap.pool, 
+                currentSwap.tokenIn, 
+                currentSwap.tokenOut, 
+                amountOut, 
+                true
+            );
+        }
+    }
 
     function joinPool(
         address pool,

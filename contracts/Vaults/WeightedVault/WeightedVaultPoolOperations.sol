@@ -12,6 +12,7 @@ import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeig
 import { WeightedVaultStorage } from "./WeightedVaultStorage.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
+import "../interfaces/ISwap.sol";
 
 // TODO: return swapFee on operations and calculate protocol fee
 // TODO: add contract for extracting protocol fee from swap fee
@@ -35,6 +36,81 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     /*************************************************
                     Internal functions
      *************************************************/
+
+    function _lightSwap(
+        address pool,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address receiver,
+        uint256 protocolFee_,
+        bool transferToUser
+    )
+        internal
+        returns (uint256 amountOut)
+    {
+        uint256[] memory poolBalances = _getPoolBalances(pool);
+        uint256 fee;
+        (amountOut, fee) = IWeightedPool(pool).swap(poolBalances, tokenIn, tokenOut, amountIn, minAmountOut);
+
+        uint256 _protocolFee = _deductFee(tokenIn, fee, protocolFee_);
+        amountIn -= _protocolFee;
+        if (transferToUser) amountOut = _transferTo(tokenOut, receiver, amountOut);
+        _postSwap(pool, tokenIn, amountIn, tokenOut, amountOut, receiver);
+    }
+
+    function _virtualSwap(
+        VirtualSwapInfo[] calldata swapRoute,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address receiver
+    )
+        internal
+        returns (uint256 amountOut)
+    {
+        uint256 protocolFee_ = protocolFee;
+        uint256 pathLength = swapRoute.length;
+        VirtualSwapInfo memory currentSwap = swapRoute[0];
+        amountIn = _transferFrom(currentSwap.tokenIn, msg.sender, amountIn);
+        amountOut = amountIn;
+        
+        // If there are mismatches in token addresses
+        // They will be spotted before actual operation begin
+        // And therefore will save some gas
+        for (uint256 id = 0; id < pathLength; id++) {
+            if (
+                (id != pathLength - 1) && 
+                (pathLength != 1)
+            ) {
+                currentSwap = swapRoute[id];
+                require(
+                    currentSwap.tokenOut == swapRoute[id+1].tokenIn,
+                    "Route contains mismatched tokens"
+                );
+            }
+        }
+
+        for (uint256 id = 0; id < pathLength; id++) {
+            currentSwap = swapRoute[id];
+            _checkPoolAddress(currentSwap.pool);
+            // Value of minAmountOut is hardcoded to 1
+            // This is done intentional, as we are only interested in
+            // Resulting value of swap
+            amountOut = _lightSwap(
+                currentSwap.pool, 
+                currentSwap.tokenIn, 
+                currentSwap.tokenOut, 
+                amountOut, 
+                id == pathLength - 1 ? minAmountOut : 1,
+                receiver,
+                protocolFee_,
+                id == pathLength - 1
+            );
+        }
+
+        return amountOut;
+    }
 
     function _swap(
         address pool,
@@ -197,9 +273,8 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         }
     }
 
-    function _preOpChecks(
-        address pool,
-        uint64 deadline
+    function _checkPoolAddress(
+        address pool
     )
         internal
         view
@@ -208,10 +283,29 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
             weightedPoolFactory.checkPoolAddress(pool),
             "Pool is not registered in factory"
         );
+    }
+
+    function _deadlineCheck(
+        uint256 deadline
+    )
+        internal
+        view
+    {
         require(
             deadline >= block.timestamp,
             "Deadline check failed"
         );
+    }
+
+    function _preOpChecks(
+        address pool,
+        uint64 deadline
+    )
+        internal
+        view
+    {
+        _checkPoolAddress(pool);
+        _deadlineCheck(deadline);
     }
 
     function _createAmountsArrayFromTokens(
