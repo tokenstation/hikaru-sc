@@ -11,12 +11,13 @@ import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeig
 import { WeightedVaultStorage } from "./WeightedVaultStorage.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
+import { IVaultPoolInfo } from "../interfaces/IVaultPoolInfo.sol";
 import "../interfaces/ISwap.sol";
 
 // TODO: return swapFee on operations and calculate protocol fee
 // TODO: add contract for extracting protocol fee from swap fee
 
-abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan, ProtocolFees {
+abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan, ProtocolFees, IVaultPoolInfo {
 
     event Swap(address pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address user);
     event Deposit(address pool, uint256 lpAmount, uint256[] tokensDeposited, address user);
@@ -31,6 +32,21 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     {
         
     }
+
+    /**
+     * @inheritdoc IVaultPoolInfo
+     */
+    function getPoolTokens(
+        address pool
+    )
+        external
+        override
+        view
+        returns (address[] memory tokens)
+    {
+        return IWeightedStorage(pool).getTokens();
+    }
+
 
     /*************************************************
                     Internal functions
