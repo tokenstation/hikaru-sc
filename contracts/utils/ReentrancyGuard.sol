@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Reentrancy guard contract
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;

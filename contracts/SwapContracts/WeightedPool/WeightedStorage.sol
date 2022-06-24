@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Contract for obtaining pool parameters
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -8,6 +8,7 @@ import { InternalStorage } from "./utils/InternalWeightedStorage.sol";
 import { IWeightedStorage } from "./interfaces/IWeightedStorage.sol";
 
 contract WeightedStorage is InternalStorage, IWeightedStorage {
+
     constructor(
         address factoryAddress_,
         address vaultAddress_,
@@ -23,10 +24,16 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         revert("Unknown token");
     }
 
+    /**
+     * @inheritdoc IWeightedStorage
+     */
     function getNTokens() external override view returns (uint256) {
         return N_TOKENS;
     }
 
+    /**
+     * @inheritdoc IWeightedStorage
+     */
     function getTokenId(address token) external override view returns (uint256 tokenId) {
         return _getTokenId(token);
     }
@@ -40,8 +47,8 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (token == token6 ) return 5 ;
         if (token == token7 ) return 6 ;
         if (token == token8 ) return 7 ;
-        // if (token == token9 ) return 8 ;
-        // if (token == token10) return 9 ;
+        if (token == token9 ) return 8 ;
+        if (token == token10) return 9 ;
         // if (token == token11) return 10;
         // if (token == token12) return 11;
         // if (token == token13) return 12;
@@ -55,6 +62,9 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         failAndRevert();
     }
 
+    /**
+     * @inheritdoc IWeightedStorage
+     */
     function getWeight(address token) external override view returns (uint256) {
         return _getWeight(token);
     }
@@ -67,8 +77,8 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (token == token6 ) return weight6 ;
         if (token == token7 ) return weight7 ;
         if (token == token8 ) return weight8 ;
-        // if (token == token9 ) return weight9 ;
-        // if (token == token10) return weight10;
+        if (token == token9 ) return weight9 ;
+        if (token == token10) return weight10;
         // if (token == token11) return weight11;
         // if (token == token12) return weight12;
         // if (token == token13) return weight13;
@@ -82,6 +92,9 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         failAndRevert();
     }
 
+    /**
+     * @inheritdoc IWeightedStorage
+     */
     function getMultiplier(address token) external override view returns (uint256) {
         return _getMultiplier(token);
     }
@@ -94,8 +107,8 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (token == token6 ) return multiplier6 ;
         if (token == token7 ) return multiplier7 ;
         if (token == token8 ) return multiplier8 ;
-        // if (token == token9 ) return multiplier9 ;
-        // if (token == token10) return multiplier10;
+        if (token == token9 ) return multiplier9 ;
+        if (token == token10) return multiplier10;
         // if (token == token11) return multiplier11;
         // if (token == token12) return multiplier12;
         // if (token == token13) return multiplier13;
@@ -109,6 +122,9 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         failAndRevert();
     }
 
+    /**
+     * @inheritdoc IWeightedStorage
+     */
     function getTokens() external override view returns (address[] memory tokens) {
         tokens = _getTokens();
     }
@@ -122,8 +138,8 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (N_TOKENS >= 6 ) tokens[5 ] = token6 ;
         if (N_TOKENS >= 7 ) tokens[6 ] = token7 ;
         if (N_TOKENS >= 8 ) tokens[7 ] = token8 ;
-        // if (N_TOKENS >= 9 ) tokens[8 ] = token9 ;
-        // if (N_TOKENS >= 10) tokens[9 ] = token10;
+        if (N_TOKENS >= 9 ) tokens[8 ] = token9 ;
+        if (N_TOKENS >= 10) tokens[9 ] = token10;
         // if (N_TOKENS >= 11) tokens[10] = token11;
         // if (N_TOKENS >= 12) tokens[11] = token12;
         // if (N_TOKENS >= 13) tokens[12] = token13;
@@ -136,6 +152,9 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         // if (N_TOKENS >= 20) tokens[19] = token20;
     }
 
+    /**
+     * @inheritdoc IWeightedStorage
+     */
     function getWeights() external override view returns (uint256[] memory weights) {
         weights = _getWeights();
     }
@@ -149,8 +168,8 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (N_TOKENS >= 6 ) weights[5 ] = weight6 ;
         if (N_TOKENS >= 7 ) weights[6 ] = weight7 ;
         if (N_TOKENS >= 8 ) weights[7 ] = weight8 ;
-        // if (N_TOKENS >= 9 ) weights[8 ] = weight9 ;
-        // if (N_TOKENS >= 10) weights[9 ] = weight10;
+        if (N_TOKENS >= 9 ) weights[8 ] = weight9 ;
+        if (N_TOKENS >= 10) weights[9 ] = weight10;
         // if (N_TOKENS >= 11) weights[10] = weight11;
         // if (N_TOKENS >= 12) weights[11] = weight12;
         // if (N_TOKENS >= 13) weights[12] = weight13;
@@ -163,6 +182,9 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         // if (N_TOKENS >= 20) weights[19] = weight20;
     }
 
+    /**
+     * @inheritdoc IWeightedStorage
+     */
     function getMultipliers() external override view returns (uint256[] memory multipliers) {
         multipliers = _getMultipliers();
     }
@@ -176,8 +198,8 @@ contract WeightedStorage is InternalStorage, IWeightedStorage {
         if (N_TOKENS >= 6 ) multipliers[5 ] = multiplier6 ;
         if (N_TOKENS >= 7 ) multipliers[6 ] = multiplier7 ;
         if (N_TOKENS >= 8 ) multipliers[7 ] = multiplier8 ;
-        // if (N_TOKENS >= 9 ) multipliers[8 ] = multiplier9 ;
-        // if (N_TOKENS >= 10) multipliers[9 ] = multiplier10;
+        if (N_TOKENS >= 9 ) multipliers[8 ] = multiplier9 ;
+        if (N_TOKENS >= 10) multipliers[9 ] = multiplier10;
         // if (N_TOKENS >= 11) multipliers[10] = multiplier11;
         // if (N_TOKENS >= 12) multipliers[11] = multiplier12;
         // if (N_TOKENS >= 13) multipliers[12] = multiplier13;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Contract that implements ERC165 for Weighted Vault
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -14,6 +14,12 @@ import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 
 
 contract WeightedVaultERC165 is IERC165 {
+
+    /**
+     * @notice Check if vault implements interface
+     * @param interfaceId Interface id
+     * @return If interface is implemented
+     */
     function supportsInterface(
         bytes4 interfaceId
     ) 

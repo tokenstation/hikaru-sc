@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Vault for interaction with Weighted pools
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -10,7 +10,7 @@ import { IFactory } from "../../Factories/interfaces/IFactory.sol";
 import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { SingleManager } from "../../utils/SingleManager.sol";
-import { Flashloan } from "../Flashloan/Flashloan.sol";
+import { Flashloan, IFlashloanManager } from "../Flashloan/Flashloan.sol";
 import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 
@@ -35,6 +35,9 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
     }
 
     event PoolRegistered(address indexed poolAddress);
+    /**
+     * @inheritdoc IWeightedVault
+     */
     function registerPool(
         address pool,
         address[] memory tokens
@@ -52,14 +55,27 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
 
 
     event FactoryAddressUpdate(address indexed newFactoryAddress);
+    /**
+     * @notice Set new factory address
+     * @dev This function can be called only once to set factory address after deploying vault
+     * @param factoryAddress New factory address
+     */
     function setFactoryAddress(
         address factoryAddress
     )
         external
         onlyManager
     {
+        require(
+            factoryAddress == address(0),
+            "Factory address is already set"
+        );
         _setFactoryAddress(factoryAddress);
     }
+    /**
+     * @notice Set new factory address
+     * @param factoryAddress New factory address
+     */
     function _setFactoryAddress(
         address factoryAddress
     )
@@ -73,6 +89,9 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         weightedPoolFactory = IFactory(factoryAddress);
     }
 
+    /**
+     * @inheritdoc IFlashloanManager
+     */
     function setFlashloanFees(
         uint256 flashloanFees_
     )
@@ -83,6 +102,9 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         _setFlashloanFees(flashloanFees_);
     }
 
+    /**
+     * @inheritdoc IFlashloanManager
+     */
     function setFeeReceiver(
         address feeReceiver_
     )
@@ -93,6 +115,9 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         _setFeeReceiver(feeReceiver_);
     }
 
+    /**
+     * @inheritdoc ProtocolFees
+     */
     function setProtocolFee(
         uint256 protocolFee_
     )
@@ -104,6 +129,9 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         _setProtocolFee(protocolFee_);
     }
 
+    /**
+     * @inheritdoc ProtocolFees
+     */
     function withdrawCollectedFees(
         address[] memory tokens,
         uint256[] memory amounts,

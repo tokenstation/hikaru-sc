@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Contract for interacting with Weighted Pool
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -7,7 +7,6 @@ pragma solidity 0.8.6;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { TokenUtils } from "../../utils/libraries/TokenUtils.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
-import { IWeightedPoolLP } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPoolLP.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { WeightedVaultStorage } from "./WeightedVaultStorage.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
@@ -37,6 +36,18 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
                     Internal functions
      *************************************************/
 
+    /**
+     * @notice Perform sell tokens swap without token transfers
+     * @param pool Address of pool
+     * @param tokenIn Token that will be used for swaps
+     * @param tokenOut Token that will be received as swap result
+     * @param amountIn Amount of tokens to sell
+     * @param minAmountOut Minimal amount out
+     * @param receiver Who will receive tokens
+     * @param protocolFee_ Protocol fee
+     * @param transferToUser If parameter is true, resulting tokens will be transferred to receiver
+     * @return amountOut Amount of tokens received as swap result
+     */
     function _lightSwap(
         address pool,
         address tokenIn,
@@ -60,6 +71,14 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         _postSwap(pool, tokenIn, amountIn, tokenOut, amountOut, receiver);
     }
 
+    /**
+     * @notice Internal function for virtual swap
+     * @param swapRoute Swap path that will be used
+     * @param amountIn Initial amount of tokens to use for swap
+     * @param minAmountOut Minimal result amount of tokens
+     * @param receiver Who will receive tokens
+     * @return amountOut Amount of tokens received as swap result
+     */
     function _virtualSwap(
         VirtualSwapInfo[] calldata swapRoute,
         uint256 amountIn,
@@ -112,6 +131,17 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         return amountOut;
     }
 
+    /**
+     * @notice Sell or buy tokens
+     * @param pool Address of pool
+     * @param tokenIn Token to sell or to use for token buying
+     * @param tokenOut Token received as sell result or to buy
+     * @param amount Amount to sell or to buy
+     * @param minMaxAmount Minimal amount to receive or maximum amount to pay
+     * @param receiver Who will receive tokens
+     * @param exactIn Sell or Buy tokens
+     * @return calculationResult Amount of tokens received/that must be paid
+     */
     function _swap(
         address pool,
         address tokenIn,
@@ -157,6 +187,13 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         );
     }
 
+    /**
+     * @notice Join pool by all tokens/some tokens/one token
+     * @param pool Address of pool
+     * @param tokenAmounts Amount of tokens to use for join
+     * @param receiver Who will receive lp tokens
+     * @return lpAmount Amount of LP tokens received
+     */
     function _joinPool(
         address pool,
         uint256[] memory tokenAmounts,
@@ -178,6 +215,13 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         _postLpUpdate(pool, lpAmount, balances, tokenAmounts, receiver, true);
     }
 
+    /**
+     * @notice Exit pool by all tokens
+     * @param pool Address of pool
+     * @param lpAmount Amount of LP tokens to burn
+     * @param receiver Who will receive tokens
+     * @return tokensReceived Amount of tokens received as exit result
+     */
     function _exitPool(
         address pool,
         uint256 lpAmount,
@@ -193,6 +237,14 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         _postLpUpdate(pool, lpAmount, balances, tokensReceived, receiver, false);
     }
 
+    /**
+     * @notice Exit pool using only one token
+     * @param pool Address of pool
+     * @param lpAmount Amount of LP tokens to burn
+     * @param token Token to use for exit
+     * @param receiver Who will receive tokens
+     * @return amountOut Amount of tokens received as exit result
+     */
     function _exitPoolSingleToken(
         address pool,
         uint256 lpAmount,
@@ -220,6 +272,15 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         amountOut = tokensReceived[IWeightedStorage(pool).getTokenId(token)];
     }
 
+    /**
+     * @notice Calculate sell/buy result
+     * @param pool Address of pool
+     * @param tokenIn Token to sell/use to buy
+     * @param tokenOut Token to receive/token to buy
+     * @param swapAmount Amount of tokens to sell/buy
+     * @param exactIn Sell tokens or buy tokens
+     * @return swapResult Result token amount
+     */
     function _calculateSwap(
         address pool,
         address tokenIn,
@@ -239,6 +300,15 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
                     Utility functions
      *************************************************/
 
+    /**
+     * @notice Post swap sequence
+     * @param pool Address of pool
+     * @param tokenIn Token transferred from user
+     * @param amountIn Amount of tokens received from user
+     * @param tokenOut Token transferred to user
+     * @param amountOut Amount of tokens transferred to user
+     * @param user Who received tokens
+     */
     function _postSwap(
         address pool,
         address tokenIn,
@@ -254,6 +324,15 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         emit Swap(pool, tokenIn, tokenOut, amountIn, amountOut, user);
     }
 
+    /**
+     * @notice Post exit/join sequence
+     * @param pool Address of pool
+     * @param lpAmount Amount of lp tokens burned/received
+     * @param balances Initial pool's token balances
+     * @param tokenAmounts Pool's token balance change
+     * @param user Who burnt/received tokens
+     * @param enterPool False=exit, True=join
+     */
     function _postLpUpdate(
         address pool,
         uint256 lpAmount,
@@ -308,6 +387,13 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         _deadlineCheck(deadline);
     }
 
+    /**
+     * @notice Create full array from some tokens
+     * @param pool Address of pool
+     * @param tokens Array of tokens that are provided
+     * @param amounts Amount of tokens
+     * @return amounts_ Result amounts array
+     */
     function _createAmountsArrayFromTokens(
         address pool,
         address[] memory tokens,
@@ -328,6 +414,13 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
                 Token transfer functions
      *************************************************/
 
+    /**
+     * @notice Transfer tokens from user and return balance deltas
+     * @param tokens Token addresses
+     * @param amounts Amounts of tokens to transfer
+     * @param user Where to transfer tokens from
+     * @return balanceDeltas Amount of tokens received from user
+     */
     function _transferTokensFrom(
         address[] memory tokens,
         uint256[] memory amounts,
@@ -342,6 +435,13 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         }
     }
 
+    /**
+     * @notice Transfer tokens to user and return balance deltas
+     * @param tokens Token addresses
+     * @param amounts Amounts of tokens to transfer
+     * @param user Who will receive tokens
+     * @return balanceDeltas Amount of tokens transferred to user
+     */
     function _transferTokensTo(
         address[] memory tokens,
         uint256[] memory amounts,
@@ -356,6 +456,13 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         }
     }
     
+    /**
+     * @notice Utility function for transferFrom
+     * @param token Token address
+     * @param user Address to transfer from
+     * @param amount Amount of tokens to transfer from
+     * @return Amount of tokens received
+     */
     function _transferFrom(
         address token,
         address user,
@@ -367,6 +474,13 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         return IERC20(token).transferFromUser(user, amount);
     }
 
+    /**
+     * @notice Utility function for transfer
+     * @param token Token address
+     * @param user Address to transfer to
+     * @param amount Amount of tokens to transfer
+     * @return Amount of tokens transferred
+     */
     function _transferTo(
         address token,
         address user,

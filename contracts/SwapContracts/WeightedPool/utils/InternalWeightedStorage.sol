@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Contract for storing pool parameters
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -7,7 +7,7 @@ pragma solidity 0.8.6;
 import { WeightedMath } from "../libraries/WeightedMath.sol";
 import { FixedPoint } from "../../../utils/Math/FixedPoint.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { MiscUtils } from "../../../utils/libraries/MiscUtils.sol";
+import { ArrayUtils } from "../../../utils/libraries/ArrayUtils.sol";
 
 contract InternalStorage {
 
@@ -27,8 +27,8 @@ contract InternalStorage {
     address internal immutable token6;
     address internal immutable token7;
     address internal immutable token8;
-    // address internal immutable token9;
-    // address internal immutable token10;
+    address internal immutable token9;
+    address internal immutable token10;
     // address internal immutable token11;
     // address internal immutable token12;
     // address internal immutable token13;
@@ -48,8 +48,8 @@ contract InternalStorage {
     uint256 internal immutable weight6;
     uint256 internal immutable weight7;
     uint256 internal immutable weight8;
-    // uint256 internal immutable weight9;
-    // uint256 internal immutable weight10;
+    uint256 internal immutable weight9;
+    uint256 internal immutable weight10;
     // uint256 internal immutable weight11;
     // uint256 internal immutable weight12;
     // uint256 internal immutable weight13;
@@ -69,8 +69,8 @@ contract InternalStorage {
     uint256 internal immutable multiplier6;
     uint256 internal immutable multiplier7;
     uint256 internal immutable multiplier8;
-    // uint256 internal immutable multiplier9;
-    // uint256 internal immutable multiplier10;
+    uint256 internal immutable multiplier9;
+    uint256 internal immutable multiplier10;
     // uint256 internal immutable multiplier11;
     // uint256 internal immutable multiplier12;
     // uint256 internal immutable multiplier13;
@@ -82,19 +82,25 @@ contract InternalStorage {
     // uint256 internal immutable multiplier19;
     // uint256 internal immutable multiplier20;
 
+    /**
+     * @param factoryAddress_ Address of factory that deployed pool
+     * @param vaultAddress_ Address of weighted vault, only this contract has access to pool swap/join/exit functions
+     * @param tokens Array of pool's tokens
+     * @param weights Array of pool's token weights
+     */
     constructor(
         address factoryAddress_,
         address vaultAddress_,
         address[] memory tokens,
         uint256[] memory weights
     ) {
-        MiscUtils.checkArrayLength(tokens, weights);
+        ArrayUtils.checkArrayLength(tokens, weights);
         require(
             tokens.length <= MAX_TOKENS,
             "Cannot create pool with more than 20 tokens"
         );
         require(
-            MiscUtils.checkUniqueness(tokens),
+            ArrayUtils.checkUniqueness(tokens),
             "Token duplication"
         );
         uint256 weightsSum = 0;
@@ -123,8 +129,8 @@ contract InternalStorage {
         token6  = tokens.length >= 6  ? tokens[5 ] : ZERO_ADDRESS;
         token7  = tokens.length >= 7  ? tokens[6 ] : ZERO_ADDRESS;
         token8  = tokens.length >= 8  ? tokens[7 ] : ZERO_ADDRESS;
-        // token9  = tokens.length >= 9  ? tokens[8 ] : ZERO_ADDRESS;
-        // token10 = tokens.length >= 10 ? tokens[9 ] : ZERO_ADDRESS;
+        token9  = tokens.length >= 9  ? tokens[8 ] : ZERO_ADDRESS;
+        token10 = tokens.length >= 10 ? tokens[9 ] : ZERO_ADDRESS;
         // token11 = tokens.length >= 11 ? tokens[10] : ZERO_ADDRESS;
         // token12 = tokens.length >= 12 ? tokens[11] : ZERO_ADDRESS;
         // token13 = tokens.length >= 13 ? tokens[12] : ZERO_ADDRESS;
@@ -144,8 +150,8 @@ contract InternalStorage {
         weight6  = weights.length >= 6  ? weights[5 ] : 0;
         weight7  = weights.length >= 7  ? weights[6 ] : 0;
         weight8  = weights.length >= 8  ? weights[7 ] : 0;
-        // weight9  = weights.length >= 9  ? weights[8 ] : 0;
-        // weight10 = weights.length >= 10 ? weights[9 ] : 0;
+        weight9  = weights.length >= 9  ? weights[8 ] : 0;
+        weight10 = weights.length >= 10 ? weights[9 ] : 0;
         // weight11 = weights.length >= 11 ? weights[10] : 0;
         // weight12 = weights.length >= 12 ? weights[11] : 0;
         // weight13 = weights.length >= 13 ? weights[12] : 0;
@@ -168,8 +174,8 @@ contract InternalStorage {
         multiplier6  = tokens.length >= 6  ? 10**(18 - IERC20Metadata(tokens[5 ]).decimals()) : 0;
         multiplier7  = tokens.length >= 7  ? 10**(18 - IERC20Metadata(tokens[6 ]).decimals()) : 0;
         multiplier8  = tokens.length >= 8  ? 10**(18 - IERC20Metadata(tokens[7 ]).decimals()) : 0;
-        // multiplier9  = tokens.length >= 9  ? 10**(18 - IERC20Metadata(tokens[8 ]).decimals()) : 0;
-        // multiplier10 = tokens.length >= 10 ? 10**(18 - IERC20Metadata(tokens[9 ]).decimals()) : 0;
+        multiplier9  = tokens.length >= 9  ? 10**(18 - IERC20Metadata(tokens[8 ]).decimals()) : 0;
+        multiplier10 = tokens.length >= 10 ? 10**(18 - IERC20Metadata(tokens[9 ]).decimals()) : 0;
         // multiplier11 = tokens.length >= 11 ? 10**(18 - IERC20Metadata(tokens[10]).decimals()) : 0;
         // multiplier12 = tokens.length >= 12 ? 10**(18 - IERC20Metadata(tokens[11]).decimals()) : 0;
         // multiplier13 = tokens.length >= 13 ? 10**(18 - IERC20Metadata(tokens[12]).decimals()) : 0;

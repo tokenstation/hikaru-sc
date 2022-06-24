@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Contract for deducting protocol fees
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
 
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
-
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { TokenUtils } from "../../utils/libraries/TokenUtils.sol";
 
@@ -24,6 +23,12 @@ abstract contract ProtocolFees {
         _setProtocolFee(protocolFee_);
     }
 
+    /**
+     * @notice Deduct fees for provided token amounts
+     * @param tokens Array of token addresses
+     * @param amounts Array of token amounts
+     * @return deductedFees Array with deducted fees
+     */
     function _deductFees(
         address[] memory tokens,
         uint256[] memory amounts
@@ -40,6 +45,14 @@ abstract contract ProtocolFees {
         }
     }
 
+    /**
+     * @notice Deduct fee for specific token
+     * @dev This function writes deducted fee to storage
+     * @param token Address of token to deduct fee
+     * @param amount Amount to deduct fee from
+     * @param _protocolFee Protocol fee coefficient
+     * @return deductedFee Deducted fees
+     */
     function _deductFee(
         address token,
         uint256 amount,
@@ -53,7 +66,15 @@ abstract contract ProtocolFees {
         collectedFees[token] += deductedFee;
     }
 
+    /**
+     * @notice Set new protocol fee
+     * @param newProtocolFee protocol fee coefficient
+     */
     function setProtocolFee(uint256 newProtocolFee) external virtual;
+    /**
+     * @notice Set new protocol fee
+     * @param newProtocolFee protocol fee coefficient
+     */
     function _setProtocolFee(
         uint256 newProtocolFee
     )
@@ -63,11 +84,25 @@ abstract contract ProtocolFees {
         protocolFee = newProtocolFee;
     }
 
+    /**
+     * @notice Transfer collected fees to provided addresses
+     * @dev Array length must be the same
+     * @param tokens Array of tokens to transfer
+     * @param amounts Amounts to transfer
+     * @param to Whete to transfer tokens
+     */
     function withdrawCollectedFees(
         address[] memory tokens,
         uint256[] memory amounts,
         address[] memory to
     ) external virtual;
+    /**
+     * @notice Transfer collected fees to provided addresses
+     * @dev Array length must be the same
+     * @param tokens Array of tokens to transfer
+     * @param amounts Amounts to transfer
+     * @param to Whete to transfer tokens
+     */
     function _withdrawCollectedFees(
         address[] memory tokens,
         uint256[] memory amounts,

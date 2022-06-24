@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Contract implements defined interfaces for interaction
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -40,6 +40,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
                       Swap functions
      *************************************************/
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function swap(
         uint256[] memory balances,
         address tokenIn,
@@ -66,6 +69,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         );
     }
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function swapExactOut(
         uint256[] memory balances,
         address tokenIn,
@@ -96,6 +102,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
                     Join/Exit Pool
      *************************************************/
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function joinPool(
         uint256[] memory balances,
         address user,
@@ -120,9 +129,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         _postJoinExit(user, lpAmount, true);
     }
 
-    // TODO: _calcBptInGivenExactTokensOut
-    // Для выхода по части токенов, а не по всем/одному
-
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function exitPool(
         uint256[] memory balances,
         address user,
@@ -138,6 +147,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         _postJoinExit(user, lpAmount, false);
     }
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function exitPoolSingleToken(
         uint256[] memory balances,
         address user,
@@ -157,6 +169,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
                       Dry run functions
      *************************************************/
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function calculateSwap(
         uint256[] memory balances,
         address tokenIn,
@@ -184,6 +199,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             );
     }
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function calculateJoin(
         uint256[] memory balances,
         uint256[] calldata amountsIn
@@ -199,6 +217,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             (lpAmount, ) = _calculateJoinPool(balances, amountsIn);
     }
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function calculateExit(
         uint256[] memory balances,
         uint256 lpAmount
@@ -211,6 +232,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
         tokensReceived = _calculateExitPool(balances, lpAmount);
     }
 
+    /**
+     * @inheritdoc IWeightedPool
+     */
     function calculatExitSingleToken(
         uint256[] memory balances,
         uint256 lpAmount,
@@ -232,6 +256,11 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
                    Change pool parameters
      *************************************************/
 
+    /**
+     * @notice Set new swap fee for pool
+     * @dev This function can only be called by poolManager
+     * @param swapFee_ New swap fee
+     */
     function setSwapFee(
         uint256 swapFee_
     )
