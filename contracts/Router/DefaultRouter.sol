@@ -164,7 +164,6 @@ contract DefaultRouter {
         VirtualSwapInfo[] calldata swapRoute,
         uint256 amountIn,
         uint256 minAmountOut,
-        address receiver,
         uint64 deadline
     ) 
         external
@@ -176,14 +175,13 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(swapRoute[0].tokenIn, amountIn, vault);
         amountIn = _transferTokenFromUser(swapRoute[0].tokenIn, msg.sender, amountIn);
-        return IVirtualSwap(vault).virtualSwap(swapRoute, amountIn, minAmountOut, receiver, deadline);
+        return IVirtualSwap(vault).virtualSwap(swapRoute, amountIn, minAmountOut, msg.sender, deadline);
     }
 
     function fullJoin(
         address vault,
         address pool,
         uint256[] memory amounts,
-        address receiver,
         uint64 deadline
     ) 
         external
@@ -196,7 +194,7 @@ contract DefaultRouter {
         address[] memory tokens = IVaultPoolInfo(vault).getPoolTokens(pool);
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
-        return IFullPoolJoin(vault).joinPool(pool, amounts, receiver, deadline);
+        return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
 
     }
 
@@ -205,7 +203,6 @@ contract DefaultRouter {
         address pool,
         address[] memory tokens,
         uint256[] memory amounts,
-        address receiver,
         uint64 deadline
     ) 
         external
@@ -217,7 +214,7 @@ contract DefaultRouter {
         );
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
-        return IFullPoolJoin(vault).joinPool(pool, amounts, receiver, deadline);
+        return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
     }
 
     function singleTokenJoin(
@@ -225,7 +222,6 @@ contract DefaultRouter {
         address pool,
         address token,
         uint256 amount,
-        address receiver,
         uint64 deadline
     ) 
         external
@@ -237,14 +233,13 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(token, amount, vault);
         amount = _transferTokenFromUser(token, msg.sender, amount);
-        return IJoinPoolSingleToken(vault).singleTokenPoolJoin(pool, token, amount, receiver, deadline);
+        return IJoinPoolSingleToken(vault).singleTokenPoolJoin(pool, token, amount, msg.sender, deadline);
     }
 
     function exit(
         address vault,
         address pool,
         uint256 lpAmount,
-        address receiver,
         uint64 deadline
     ) 
         external
@@ -256,7 +251,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IFullPoolExit(vault).exitPool(pool, lpAmount, receiver, deadline);
+        return IFullPoolExit(vault).exitPool(pool, lpAmount, msg.sender, deadline);
     }
     
     function partialExit(
@@ -264,7 +259,6 @@ contract DefaultRouter {
         address pool,
         uint256 lpAmount,
         address[] memory tokens,
-        address receiver,
         uint64 deadline
     ) 
         external
@@ -276,7 +270,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IPartialPoolExit(vault).partialPoolExit(pool, lpAmount, tokens, receiver, deadline);
+        return IPartialPoolExit(vault).partialPoolExit(pool, lpAmount, tokens, msg.sender, deadline);
     }
 
     function singleTokenExit(
@@ -284,7 +278,6 @@ contract DefaultRouter {
         address pool,
         uint256 lpAmount,
         address token,
-        address receiver,
         uint64 deadline
     ) 
         external
@@ -296,6 +289,6 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IExitPoolSingleToken(vault).exitPoolSingleToken(pool, lpAmount, token, receiver, deadline);
+        return IExitPoolSingleToken(vault).exitPoolSingleToken(pool, lpAmount, token, msg.sender, deadline);
     }
 }
