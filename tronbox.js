@@ -1,6 +1,6 @@
 module.exports = {
     networks: {
-        dev: {
+        tron_dev: {
             privateKey: '212207363424d4590c01c206cfdb7f5b6af4f86718f0f8e6c234c8356f3c1e54',
             feeLimit: 1000000000,
             userFeePercentage: 100,

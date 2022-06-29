@@ -67,7 +67,7 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         onlyManager
     {
         require(
-            factoryAddress == address(0),
+            address(weightedPoolFactory) == address(0),
             "Factory address is already set"
         );
         _setFactoryAddress(factoryAddress);

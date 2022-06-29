@@ -44,6 +44,7 @@ abstract contract WeightedOperations is
     )
         external
         override
+        reentrancyGuard
         returns (uint256 amountOut)
     {
         _preOpChecks(pool, deadline);
@@ -89,6 +90,7 @@ abstract contract WeightedOperations is
     ) 
         external
         override
+        reentrancyGuard
         returns (uint256 amountIn)
     {
         _preOpChecks(pool, deadline);
@@ -132,6 +134,7 @@ abstract contract WeightedOperations is
     ) 
         external
         override
+        reentrancyGuard
         returns (uint256 amountOut)
     {
         _deadlineCheck(deadline);
@@ -191,7 +194,8 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (uint256 lpAmount)
     {
         _preOpChecks(pool, deadline);
@@ -206,7 +210,7 @@ abstract contract WeightedOperations is
         uint256[] memory amounts
     )   
         external
-        override 
+        override
         view 
         returns (uint256 lpAmount)
     {
@@ -225,7 +229,8 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (uint256 lpAmount)
     {
         _preOpChecks(pool, deadline);
@@ -245,7 +250,7 @@ abstract contract WeightedOperations is
         uint256[] memory amounts
     ) 
         external
-        override 
+        override
         view 
         returns (uint256 lpAmount)
     {
@@ -268,6 +273,7 @@ abstract contract WeightedOperations is
     ) 
         external 
         override
+        reentrancyGuard
         returns (uint256 lpAmount)
     {
         _preOpChecks(pool, deadline);
@@ -312,7 +318,8 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (address[] memory tokens, uint256[] memory amounts)
     {
         _preOpChecks(pool, deadline);
@@ -329,7 +336,7 @@ abstract contract WeightedOperations is
         uint256 lpAmount
     ) 
         external
-        override 
+        override
         view 
         returns (address[] memory tokens, uint256[] memory amounts)
     {
@@ -349,7 +356,8 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (uint256 receivedAmount)
     {
         _preOpChecks(pool, deadline);
@@ -365,7 +373,7 @@ abstract contract WeightedOperations is
         address token
     ) 
         external
-        override 
+        override
         view 
         returns (uint256 receivedAmount)
     {
