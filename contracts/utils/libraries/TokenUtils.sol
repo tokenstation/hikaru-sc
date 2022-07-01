@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Library for token transfers and calculating balance delta
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -11,6 +11,14 @@ import { SafeERC20 } from "./SafeERC20.sol";
 library TokenUtils {
     using SafeERC20 for IERC20;
 
+    /**
+     * @notice Transfer tokens from user and return balance difference
+     * @dev Function is mainly designed for tokens with comissions
+     * @param tokenIn Token that will be transferred
+     * @param user Address of user
+     * @param amountIn Amount of tokens to transfer from user
+     * @return Amount of tokens that were really transferred
+     */
     function transferFromUser(
         IERC20 tokenIn,
         address user,
@@ -26,6 +34,14 @@ library TokenUtils {
         return balanceAfter - balanceBefore;
     }
 
+    /**
+     * @notice Transfer tokens to user and return balance difference
+     * @dev Function is mainly designed for tokens with comissions
+     * @param tokenOut Token that will be transferred
+     * @param user Address of user
+     * @param amountOut Amount of tokens to transfer to user
+     * @return Amount of tokens that were really transferred
+     */
     function transferToUser(
         IERC20 tokenOut,
         address user,

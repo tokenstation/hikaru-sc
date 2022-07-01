@@ -1,35 +1,66 @@
-# DSwap-Contracts-V1
+# Hikaru smart-contracts
 
-Basic info about swap contracts:
-- All contracts for swaps use the same interface
-- The difference between contracts is in used underlying libraries
-- Libraries for swaps are provided in ./contracts/SwapContracts/
+This repository contains smart contracts for Hikaru Dex.
 
-Layout of contracts:
-- Tokens used by swap pair
-- Parameters required for calculating swaps -> can be stored in separate contract
-- Swaps are performed using calls for underlying libraries
+## Repository structure
 
-Data:
-- Tokens used by pair -> stored in array inside smart-contract, can be obtained through interface/call to public fields
-- Pair parameters -> stored in pair/separate contract, may be represented as bytes and later be decoded
-- Token balances -> requested per each transaction, so we can work with tokens that have fees on transfer
+This repository contains following:
+- Smart contracts:
+    - [Router for interaction with the system](./contracts/Router/)
+    - [Factories for creating new pools](./contracts/Factories/)
+    - [Pool contracts](./contracts/SwapContracts/)
+    - [Vault contracts](./contracts/Vaults/)
+    - [Utility contracts](./contracts/utils/)
+    - [Contracts for tests](./contracts/tests/)
 
-Functionality:
-- Swap operations -> swap any of underlying tokens to another (if it is mathematically possible)
-- If it's possible to calculate -> provide functionality to swap tokens to receive exact amount of tokens (i.e. swap N token1 to receive 1000 token2)
-- If it's possible -> provide dry-run functions for swaps (for calculation of swap result without performing it, may be inconsistent for tokens with transfer fees)
-- If it's possible -> allow flashloans
+- Tests for smart contracts:
+    - [Initialization tests](./test/1_initializationTests/)
+    - [Setters tests](./test/2_accessTests/)
+    - [Functionality tests](./test/3_operationTests/)
+    
+## Basic smart contracts information
 
-Info for interaction:
-- All used interfaces are atomical interfaces -> they represent single piece of functionality, which will not be mixed
+### Pool contracts
 
-Misc:
-- Contracts must consist of minimal amount of code and variables required for operating
-- Each function of smart contract must be tested
-- There must be minimal dependencies, every contract should be self-contained
+These contracts present smart-contracts for calculation of operations
 
-Smart-contracts consist of 3 layers:
-- External layer -> users use this layer to interact with smart-contracts
-- Middle layer -> this layer performs checks (minimal output/deadlines/authority), token transfers and emits events
-- Internal layers -> this layer calculates swap result, which is passed back to middle layer for further actions
+### Vault contracts
+
+These contracts store tokens for pools that vault represents
+
+### Factory contracts
+
+These contracts are used for creating of new pool contracts
+
+### Router contracts
+
+These contracts are used for users to interact with the system
+
+## Operation flow
+
+```
+
+                       ┌─────────────┐  ┌────────────┐
+                       │             │  │Pool1 type 1│
+                    ┌──►Vault type 1 ├──►...         │
+                    │  │             │  │PoolN type 1│
+                    │  ├─────────────┤  ├────────────┤
+┌──────┐   ┌──────┐ │  ├─────────────┤  ├────────────┤
+│      │   │      │ │  │             │  │Pool1 type 2│
+│ User ├───►Router├─┼──►Vault type 2 ├──►...         │
+│      │   │      │ │  │             │  │PoolN type 2│
+└──────┘   └──────┘ │  ├─────────────┤  ├────────────┤
+                    │  ├─────────────┤  ├────────────┤
+                    │  │             │  │Pool1 type 3│
+                    └──►Vault type 3 ├──►...         │
+                       │             │  │PoolN type 3│
+                       └─────────────┘  └────────────┘
+```
+
+User perspective:
+1. User sets allowances for tokens to router
+2. User calls router to perform operation
+3. Router checks if Vault can perform selected operation using IERC165
+4. Router transfers tokens from user
+5. If necessary router performs calculations for operation
+6. Router calls vault with receiver set to msg.sender so user will receive operation result tokens

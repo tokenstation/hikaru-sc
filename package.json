@@ -19,7 +19,7 @@
     "install-tron-container": "docker pull trontools/quickstart",
     "start-evm-fork": "ganache",
     "compile": "truffle compile --all",
-    "migrate": "truffle migrate --network development --compile-none",
+    "migrate": "truffle migrate --network development --compile-none --reset",
     "test": "truffle test --network development --compile-none"
   },
   "repository": {

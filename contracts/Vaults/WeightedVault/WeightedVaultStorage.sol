@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Storage of weighted vault
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -18,6 +18,12 @@ contract WeightedVaultStorage is ExternalBalanceManager {
         weightedPoolFactory = IFactory(weightedPoolFactory_);
     }
 
+    /**
+     * @notice Get pool's token balance by token address
+     * @param pool Address of pool
+     * @param token Address of token
+     * @return tokenBalance Balance of token
+     */
     function _getPoolTokenBalanceByAddress(
         address pool,
         address token
@@ -32,6 +38,12 @@ contract WeightedVaultStorage is ExternalBalanceManager {
         );
     }
 
+    /**
+     * @notice Get pool's token balance by token address
+     * @param pool Address of pool
+     * @param token Address of token
+     * @return tokenBalance Balance of token
+     */
     function getPoolTokenBalance(
         address pool, 
         address token

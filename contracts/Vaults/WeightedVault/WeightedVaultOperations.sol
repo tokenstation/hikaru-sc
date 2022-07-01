@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Contract implementing default interfaces
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -30,6 +30,9 @@ abstract contract WeightedOperations is
         
     }
 
+    /**
+     * @inheritdoc ISellTokens
+     */
     function sellTokens(
         address pool, 
         address tokenIn, 
@@ -41,6 +44,7 @@ abstract contract WeightedOperations is
     )
         external
         override
+        reentrancyGuard
         returns (uint256 amountOut)
     {
         _preOpChecks(pool, deadline);
@@ -55,6 +59,9 @@ abstract contract WeightedOperations is
         );
     }
 
+    /**
+     * @inheritdoc ISellTokens
+     */
     function calculateSellTokens(
         address pool, 
         address tokenIn, 
@@ -69,6 +76,9 @@ abstract contract WeightedOperations is
         amountOut = _calculateSwap(pool, tokenIn, tokenOut, swapAmount, true);
     }
 
+    /**
+     * @inheritdoc IBuyTokens
+     */
     function buyTokens(
         address pool,
         address tokenIn,
@@ -80,6 +90,7 @@ abstract contract WeightedOperations is
     ) 
         external
         override
+        reentrancyGuard
         returns (uint256 amountIn)
     {
         _preOpChecks(pool, deadline);
@@ -94,6 +105,9 @@ abstract contract WeightedOperations is
         );
     }
 
+    /**
+     * @inheritdoc IBuyTokens
+     */
     function calculateBuyTokens(
         address pool,
         address tokenIn,
@@ -108,6 +122,9 @@ abstract contract WeightedOperations is
         amountIn = _calculateSwap(pool, tokenIn, tokenOut, amountOut, false);
     }   
 
+    /**
+     * @inheritdoc IVirtualSwap
+     */
     function virtualSwap(
         VirtualSwapInfo[] calldata swapRoute, 
         uint256 amountIn,
@@ -117,6 +134,7 @@ abstract contract WeightedOperations is
     ) 
         external
         override
+        reentrancyGuard
         returns (uint256 amountOut)
     {
         _deadlineCheck(deadline);
@@ -128,6 +146,12 @@ abstract contract WeightedOperations is
         );
     }
 
+    // CAUTION!
+    // This function will provide correct result only
+    // When there are no pool duplication
+    /**
+     * @inheritdoc IVirtualSwap
+     */
     function calculateVirtualSwap(
         VirtualSwapInfo[] calldata swapRoute,
         uint256 amountIn
@@ -160,6 +184,9 @@ abstract contract WeightedOperations is
         }
     }
 
+    /**
+     * @inheritdoc IFullPoolJoin
+     */
     function joinPool(
         address pool,
         uint256[] memory amounts,
@@ -167,19 +194,23 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (uint256 lpAmount)
     {
         _preOpChecks(pool, deadline);
         return _joinPool(pool, amounts, receiver);
     }
 
+    /**
+     * @inheritdoc IFullPoolJoin
+     */
     function calculateJoinPool(
         address pool,
         uint256[] memory amounts
     )   
         external
-        override 
+        override
         view 
         returns (uint256 lpAmount)
     {
@@ -187,6 +218,9 @@ abstract contract WeightedOperations is
         lpAmount = IWeightedPool(pool).calculateJoin(balances, amounts);
     }
 
+    /**
+     * @inheritdoc IPartialPoolJoin
+     */
     function partialPoolJoin(
         address pool,
         address[] memory tokens,
@@ -195,7 +229,8 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (uint256 lpAmount)
     {
         _preOpChecks(pool, deadline);
@@ -206,13 +241,16 @@ abstract contract WeightedOperations is
         );
     }
 
+    /**
+     * @inheritdoc IPartialPoolJoin
+     */
     function calculatePartialPoolJoin(
         address pool,
         address[] memory tokens,
         uint256[] memory amounts
     ) 
         external
-        override 
+        override
         view 
         returns (uint256 lpAmount)
     {
@@ -223,6 +261,9 @@ abstract contract WeightedOperations is
         );
     }
 
+    /**
+     * @inheritdoc IJoinPoolSingleToken
+     */
     function singleTokenPoolJoin(
         address pool,
         address token,
@@ -232,6 +273,7 @@ abstract contract WeightedOperations is
     ) 
         external 
         override
+        reentrancyGuard
         returns (uint256 lpAmount)
     {
         _preOpChecks(pool, deadline);
@@ -244,6 +286,9 @@ abstract contract WeightedOperations is
         );
     }
 
+    /**
+     * @inheritdoc IJoinPoolSingleToken
+     */
     function calculateSingleTokenPoolJoin(
         address pool,
         address token,
@@ -263,6 +308,9 @@ abstract contract WeightedOperations is
         );
     }
 
+    /**
+     * @inheritdoc IFullPoolExit
+     */
     function exitPool(
         address pool,
         uint256 lpAmount,
@@ -270,7 +318,8 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (address[] memory tokens, uint256[] memory amounts)
     {
         _preOpChecks(pool, deadline);
@@ -279,12 +328,15 @@ abstract contract WeightedOperations is
         tokens = poolStorage.getTokens();
     }
 
+    /**
+     * @inheritdoc IFullPoolExit
+     */
     function calculateExitPool(
         address pool,
         uint256 lpAmount
     ) 
         external
-        override 
+        override
         view 
         returns (address[] memory tokens, uint256[] memory amounts)
     {
@@ -293,6 +345,9 @@ abstract contract WeightedOperations is
         tokens = IWeightedStorage(pool).getTokens();
     }
 
+    /**
+     * @inheritdoc IExitPoolSingleToken
+     */
     function exitPoolSingleToken(
         address pool,
         uint256 lpAmount,
@@ -301,20 +356,24 @@ abstract contract WeightedOperations is
         uint64 deadline
     ) 
         external
-        override 
+        override
+        reentrancyGuard 
         returns (uint256 receivedAmount)
     {
         _preOpChecks(pool, deadline);
         return _exitPoolSingleToken(pool, lpAmount, token, receiver);
     }
 
+    /**
+     * @inheritdoc IExitPoolSingleToken
+     */
     function calculateExitPoolSingleToken(
         address pool,
         uint256 lpAmount,
         address token
     ) 
         external
-        override 
+        override
         view 
         returns (uint256 receivedAmount)
     {

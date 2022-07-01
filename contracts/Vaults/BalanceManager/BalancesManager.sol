@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Base contract for manipulating pool balances
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -9,6 +9,12 @@ import { IExternalBalanceManager } from "./interfaces/IExternalBalanceManager.so
 contract InternalBalanceManager {
     mapping(address => uint256[]) internal _internalBalances;
 
+    /**
+     * @notice Add new pool balance
+     * @param pool Address of pool
+     * @param nTokens amount of tokens in pool
+     * @return Wether pool was registered successfully
+     */
     function _registerPoolBalance(
         address pool,
         uint256 nTokens
@@ -22,6 +28,12 @@ contract InternalBalanceManager {
         return true;
     }
 
+    /**
+     * @notice Get balances of pool
+     * @param pool Address of pool
+     * @param tokenId Id of token
+     * @return tokenBalance Pool's token balance
+     */
     function _getPoolTokenBalance(
         address pool,
         uint256 tokenId
@@ -33,6 +45,11 @@ contract InternalBalanceManager {
         tokenBalance = _internalBalances[pool][tokenId];
     }
 
+    /**
+     * @notice Get pool balances
+     * @param pool Address of pool
+     * @return tokenBalances Pool balances
+     */
     function _getPoolBalances(
         address pool
     )
@@ -43,6 +60,14 @@ contract InternalBalanceManager {
         tokenBalances = _internalBalances[pool];
     }
 
+    /**
+     * @notice Change pool balance of selected token
+     * @param pool Address of pool
+     * @param tokenId Id of token
+     * @param amount Balance delta
+     * @param positive Add or substract token balance
+     * @return balanceAfter Balance after changing
+     */
     function _changePoolBalance(
         address pool,
         uint256 tokenId,
@@ -56,6 +81,11 @@ contract InternalBalanceManager {
         _internalBalances[pool][tokenId] = balanceAfter;
     }
 
+    /**
+     * @notice Set pool balance
+     * @param pool Address of pool
+     * @param balances New pool balances
+     */
     function _setBalances(
         address pool,
         uint256[] memory balances
@@ -65,6 +95,13 @@ contract InternalBalanceManager {
         _internalBalances[pool] = balances;
     }
 
+    /**
+     * @notice Calculate balance changes
+     * @param balances Pool balance
+     * @param deltas Balance deltas
+     * @param positive Add or substract deltas
+     * @return Calculated balance updates
+     */
     function _calculateBalancesUpdate(
         uint256[] memory balances,
         uint256[] memory deltas,
@@ -82,6 +119,10 @@ contract InternalBalanceManager {
 }
 
 abstract contract ExternalBalanceManager is IExternalBalanceManager, InternalBalanceManager {
+
+    /**
+     * @inheritdoc IExternalBalanceManager
+     */
     function getPoolBalances(
         address pool
     )
@@ -93,6 +134,9 @@ abstract contract ExternalBalanceManager is IExternalBalanceManager, InternalBal
         poolBalance = _internalBalances[pool];
     }
 
+    /**
+     * @inheritdoc IExternalBalanceManager
+     */
     function getPoolTokenBalance(
         address pool,
         address token

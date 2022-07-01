@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// @title Interface for obtaining token info from contracts
+// @title Factory for weighted pools
 // @author tokenstation.dev
 
 pragma solidity 0.8.6;
@@ -26,6 +26,9 @@ contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
     address[] public pools;
     mapping(address => bool) internal knownPools;
 
+    /**
+     * @param weightedVault_ Address of weighted vault that is used for interaction with smart contracts
+     */
     constructor(
         address weightedVault_
     ) 
@@ -34,6 +37,16 @@ contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
         weightedVault = IWeightedVault(weightedVault_);
     }
 
+    /**
+     * @notice Create new pool with provided parameters
+     * @dev This function will create pool and then it will register pool to weighted vault
+     * @param tokens Addresses of tokens that will be used by pool
+     * @param weights Weights of tokens in pool
+     * @param swapFee Swap fee of pool
+     * @param lpName Name of pool's LP token, recommended: WeightedPool TokenName-TokenName-...
+     * @param lpSymbol Symbol of pool's LP token, recommended: WP TS-TS-TS-...
+     * @param poolManager Address of pool manager who will be able to change pool parameters
+     */
     function createPool(
         address[] memory tokens,
         uint256[] memory weights,
@@ -71,6 +84,9 @@ contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
         knownPools[poolAddress] = true;
     }
 
+    /**
+     * @inheritdoc IFactory
+     */
     function checkPoolAddress(
         address poolAddress
     ) 
@@ -82,6 +98,10 @@ contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
         return knownPools[poolAddress];
     }
 
+    /**
+     * @notice Get amount of deployed pools
+     * @return N_POOLS Total amount of deployed pools
+     */
     function totalPools()
         external
         view

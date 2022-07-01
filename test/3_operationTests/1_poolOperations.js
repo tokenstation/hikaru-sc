@@ -13,6 +13,7 @@ const { toBN } = require("web3-utils");
 const WeightedFactory = artifacts.require('WeightedPoolFactory');
 const WeightedVault = artifacts.require('WeightedVault');
 const WeightedPool = artifacts.require('WeightedPool');
+const DefaultRouter = artifacts.require('DefaultRouter');
 
 const ERC20Mock = artifacts.require('ERC20Mock');
 const TestMath = artifacts.require('TestMath');
@@ -44,11 +45,13 @@ contract('WeightedPool', async(accounts) => {
     let testMath;
     let weightedVault;
     let weightedFactory;
+    let router;
 
     before(async() => {
         testMath = await TestMath.deployed();
         weightedVault = await WeightedVault.deployed();
         weightedFactory = await WeightedFactory.deployed();
+        router = await DefaultRouter.deployed();
     })
 
     let tokensConfig = [
@@ -125,6 +128,7 @@ contract('WeightedPool', async(accounts) => {
         it('Set infinite approval to vault from user', async() => {
             const tokens = await pool.getTokens.call();
             await setInfApprovalsTo(initializer, weightedVault.address, tokens);
+            await setInfApprovalsTo(initializer, router.address, tokens)
         })
 
         it('Initialize pool', async() => {
@@ -173,7 +177,7 @@ contract('WeightedPool', async(accounts) => {
 
     describe('Enter pool', async() => {
         it('Mint tokens to user', async() => {
-            const amount = toBN(3e5);
+            const amount = toBN(1e6);
             const tokens = await pool.getTokens.call();
             const amounts = await generateEqualAmountsForTokens(tokens, amount);
             await mintTokensToUser(joiner, tokens, amounts);
@@ -182,6 +186,7 @@ contract('WeightedPool', async(accounts) => {
         it('Set infinite approval to vault from user', async() => {
             const tokens = await pool.getTokens.call();
             await setInfApprovalsTo(joiner, weightedVault.address, tokens);
+            await setInfApprovalsTo(joiner, router.address, tokens);
         })
 
         it('Enter pool using all tokens', async() => {
@@ -206,6 +211,21 @@ contract('WeightedPool', async(accounts) => {
             const finalBalances = await getBalancesForAddresses(watchAddresses, tokens);
             checkBNDeltas(initialBalances, finalBalances, [joinerAmounts, amounts]);
             await postJoinChecks(joinInfo);
+        })
+
+        it('Enter pool using all tokens via router', async() => {
+            const amount = toBN(1e5);
+            const tokens = await pool.getTokens.call();
+            const amounts = await generateEqualAmountsForTokens(tokens, amount);
+            const deadline = getDeadline();
+
+            const tx = await router.fullJoin(
+                weightedVault.address,
+                pool.address,
+                amounts,
+                deadline,
+                from(joiner)
+            )
         })
 
         it('Enter pool using some tokens', async() => {
