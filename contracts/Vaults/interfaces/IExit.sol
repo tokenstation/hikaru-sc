@@ -66,7 +66,7 @@ interface IPartialPoolExit {
         address pool,
         uint256 lpAmount,
         address[] memory tokens
-    ) external returns (address[] memory tokens_, uint256[] memory amounts);
+    ) external view returns (address[] memory tokens_, uint256[] memory amounts);
 }   
 
 interface IExitPoolSingleToken {

@@ -139,6 +139,24 @@ contract DefaultRouter {
         return ISellTokens(vault).sellTokens(pool, tokenIn, tokenOut, amountIn, minAmountOut, msg.sender, deadline);
     }
 
+    function calculateSellTokens(
+        address vault,
+        address pool,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn
+    )
+        external
+        view
+        returns (uint256)
+    {
+        _checkContractInterface(
+            vault, 
+            type(ISellTokens).interfaceId
+        );
+        return ISellTokens(vault).calculateSellTokens(pool, tokenIn, tokenOut, amountIn);
+    }
+
     function buyTokens(
         address vault,
         address pool,
@@ -156,7 +174,27 @@ contract DefaultRouter {
             type(IBuyTokens).interfaceId
         );
         _checkTokenAllowance(tokenIn, maxAmountIn, vault);
+        uint256 transferFromUser = IBuyTokens(vault).calculateBuyTokens(pool, tokenIn, tokenOut, amountToBuy);
+        _transferTokenFromUser(tokenIn, msg.sender, transferFromUser);
         return IBuyTokens(vault).buyTokens(pool, tokenIn, tokenOut, amountToBuy, maxAmountIn, msg.sender, deadline);
+    }
+
+    function calculateBuyTokens(
+        address vault,
+        address pool,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountToBuy
+    )
+        external
+        view
+        returns (uint256)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IBuyTokens).interfaceId
+        );
+        return IBuyTokens(vault).calculateBuyTokens(pool, tokenIn, tokenOut, amountToBuy);
     }
 
     function virtualSwap(
@@ -178,6 +216,22 @@ contract DefaultRouter {
         return IVirtualSwap(vault).virtualSwap(swapRoute, amountIn, minAmountOut, msg.sender, deadline);
     }
 
+    function calculateVirtualSwap(
+        address vault,
+        VirtualSwapInfo[] calldata swapRoute,
+        uint256 amountIn
+    )
+        external
+        view
+        returns (uint256)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IVirtualSwap).interfaceId
+        );
+        return IVirtualSwap(vault).calculateVirtualSwap(swapRoute, amountIn);
+    }
+
     function fullJoin(
         address vault,
         address pool,
@@ -195,7 +249,22 @@ contract DefaultRouter {
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
         return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
+    }
 
+    function calculateFullJoin(
+        address vault,
+        address pool,
+        uint256[] memory amounts
+    )
+        external
+        view
+        returns (uint256)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IFullPoolJoin).interfaceId
+        );
+        return IFullPoolJoin(vault).calculateJoinPool(pool, amounts);
     }
 
     function partialJoin(
@@ -217,6 +286,23 @@ contract DefaultRouter {
         return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
     }
 
+    function calculatePartialJoin(
+        address vault,
+        address pool,
+        address[] memory tokens,
+        uint256[] memory amounts
+    )
+        external
+        view
+        returns (uint256)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IPartialPoolJoin).interfaceId
+        );
+        return IPartialPoolJoin(vault).calculatePartialPoolJoin(pool, tokens, amounts);
+    }
+
     function singleTokenJoin(
         address vault,
         address pool,
@@ -236,6 +322,23 @@ contract DefaultRouter {
         return IJoinPoolSingleToken(vault).singleTokenPoolJoin(pool, token, amount, msg.sender, deadline);
     }
 
+    function calculateSingleTokenJoin(
+        address vault,
+        address pool,
+        address token,
+        uint256 amount
+    )
+        external
+        view
+        returns (uint256)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IJoinPoolSingleToken).interfaceId
+        );
+        return IJoinPoolSingleToken(vault).calculateSingleTokenPoolJoin(pool, token, amount);
+    }
+
     function exit(
         address vault,
         address pool,
@@ -252,6 +355,22 @@ contract DefaultRouter {
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
         return IFullPoolExit(vault).exitPool(pool, lpAmount, msg.sender, deadline);
+    }
+
+    function calculateExit(
+        address vault,
+        address pool,
+        uint256 lpAmount
+    )
+        external
+        view    
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IFullPoolExit).interfaceId
+        );
+        return IFullPoolExit(vault).calculateExitPool(pool, lpAmount);
     }
     
     function partialExit(
@@ -273,6 +392,23 @@ contract DefaultRouter {
         return IPartialPoolExit(vault).partialPoolExit(pool, lpAmount, tokens, msg.sender, deadline);
     }
 
+    function calculatePartialExit(
+        address vault,
+        address pool,
+        uint256 lpAmount,
+        address[] memory tokens
+    )
+        external
+        view
+        returns (address[] memory tokens_, uint256[] memory amounts)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IPartialPoolExit).interfaceId
+        );
+        return IPartialPoolExit(vault).calculatePartialPoolExit(pool, lpAmount, tokens);
+    }
+
     function singleTokenExit(
         address vault,
         address pool,
@@ -290,5 +426,22 @@ contract DefaultRouter {
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
         return IExitPoolSingleToken(vault).exitPoolSingleToken(pool, lpAmount, token, msg.sender, deadline);
+    }
+
+    function calculateSingleTokenExit(
+        address vault,
+        address pool,
+        uint256 lpAmount,
+        address token
+    )
+        external
+        view
+        returns (uint256)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IExitPoolSingleToken).interfaceId
+        );
+        return IExitPoolSingleToken(vault).calculateExitPoolSingleToken(pool, lpAmount, token);
     }
 }
