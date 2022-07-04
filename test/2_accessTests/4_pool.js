@@ -1,5 +1,5 @@
 // For pool we need to check following contracts:
-// 1. SingleManager - check if only manager can change fee setter
+// 1. Manageable - check if only manager can change fee setter
 // 2. WieghtedVault - check that swap functions can only be accessed through vault
 
 const { expectRevert } = require("@openzeppelin/test-helpers");

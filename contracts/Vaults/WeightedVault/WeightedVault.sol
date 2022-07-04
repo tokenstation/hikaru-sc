@@ -9,13 +9,13 @@ import { WeightedOperations } from "./WeightedVaultOperations.sol";
 import { IFactory } from "../../Factories/interfaces/IFactory.sol";
 import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
-import { SingleManager } from "../../utils/SingleManager.sol";
+import { Manageable } from "../../utils/Manageable.sol";
 import { Flashloan, IFlashloanManager } from "../Flashloan/Flashloan.sol";
 import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 import "../../utils/Errors/ErrorLib.sol";
 // TODO: systematize imports
-contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, SingleManager {
+contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, Manageable {
 
     uint256 public constant MAX_UINT = 2**256 - 1;
     mapping (address => uint256) public tokenBalances;
@@ -29,7 +29,7 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         WeightedOperations(weightedPoolFactory_)
         ProtocolFees(protocolFee_)
         Flashloan(flashloanFeeReceiver_, flashloanFee_)
-        SingleManager(msg.sender)
+        Manageable(msg.sender)
     {
         
     }
