@@ -109,6 +109,7 @@ library Errors {
     uint256 internal constant CODE_DEPLOYMENT_FAILED = 205;
     uint256 internal constant ZERO_ADDRESS = 206;
     uint256 internal constant ARRAY_LENGTH_MISMATCH = 207;
+    uint256 internal constant ZERO_INVARIANT = 208;
 
     // Access
     uint256 internal constant CALLER_IS_NOT_MANAGER = 300;
@@ -125,11 +126,10 @@ library Errors {
     uint256 internal constant SAME_TOKEN_SWAP = 406;
     uint256 internal constant SWAP_NOT_ENOUGH_RECEIVED = 407;
     uint256 internal constant SWAP_TOO_MUCH_PAID = 408;
-    uint256 internal constant ZERO_INVARIANT = 409;
-    uint256 internal constant MAX_IN_RATIO = 410;
-    uint256 internal constant MAX_OUT_RATIO = 411;
-    uint256 internal constant MIN_BPT_IN_FOR_TOKEN_OUT = 412;
-    uint256 internal constant MAX_OUT_BPT_FOR_TOKEN_IN = 413;
+    uint256 internal constant MAX_IN_RATIO = 409;
+    uint256 internal constant MAX_OUT_RATIO = 410;
+    uint256 internal constant MIN_BPT_IN_FOR_TOKEN_OUT = 411;
+    uint256 internal constant MAX_OUT_BPT_FOR_TOKEN_IN = 412;
 
     // Vaults
     uint256 internal constant VAULT_DOES_NOT_IMPLEMENT_REQUIRED_INTERFACE = 500;

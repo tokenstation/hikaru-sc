@@ -22,21 +22,80 @@ This repository contains following:
 
 ### Pool contracts
 
-These contracts present smart-contracts for calculation of operations
+Pool contracts are smart-contracts that implement:
+- Calculations for pool operations (swaps/joins/exits)
+- Liquidity pool ownership via LP tokens
+
+### Interactions with other contracts
+
+Pools allow performing operations only through vault. If any other contract/user tries to call contract to perform operation - transaction will fail.
+
+```
+┌─────────────┐     Operation forbidden  ┌────┐
+│ Random user ├─────xxxxxxxxxxxxxxxxxxx──►    │
+└─────────────┘                          │    │
+                                         │    │
+                                         │Pool│
+┌─────────────┐                          │    │
+│Corresponding│     Operation permitted  │    │
+│    Vault    ├──────────────────────────►    │
+└─────────────┘                          └────┘
+```
 
 ### Vault contracts
 
-These contracts store tokens for pools that vault represents
+Vault contracts are smart-contracts intended for:
+- Performing operations with vault's pools
+- Act as token storage for pools
+
+### Interactions with other contracts
+
+While processing operations vaults perform following operations:
+- Transfer tokens to/from user
+- Calls pool to calculate operation result
+- Transfer tokens to/from user (as operation result)
+
+```
+┌─────┐   Calculation request to pool   ┌────┐
+│     ├─────────────────────────────────►    │
+│Vault│                                 │Pool│
+│     ◄─────────────────────────────────┤    │
+└┬───▲┘        Calculation result       └────┘
+ │   │
+ │   │ token balances ┌─────┐
+ │   └────────────────┤     │
+ │                    │ERC20│
+ │transfer operations │token│
+ └────────────────────►     │
+                      └─────┘
+```
+
+Vaults can only interact with pools that were created by corresponding factories. \
+For example: 
+- Weighted Vault cannot interact with NewType Pools which were created by factory other than Weighted Pool Factory.
 
 ### Factory contracts
 
-These contracts are used for creating of new pool contracts
+Factory contracts are used to:
+- Create new pool contracts
+- Track what pool contracts belong to factory
+
+### Interations with other contracts
+
+Factory must call Vault contract to register created pool
+
+```
+┌───────┐    New pool registration   ┌─────┐
+│Factory├────────────────────────────►Vault│
+└───────┘                            └─────┘
+```
+
 
 ### Router contracts
 
-These contracts are used for users to interact with the system
+Router contracts are used as single entry point for users to intract with system, reducing amount of required approvals for tokens and performing required checks.
 
-## Operation flow
+### Operations flow
 
 ```
 
@@ -64,3 +123,20 @@ User perspective:
 4. Router transfers tokens from user
 5. If necessary router performs calculations for operation
 6. Router calls vault with receiver set to msg.sender so user will receive operation result tokens
+
+
+## Misc info
+
+There are specific tweaks in system to operate with tokens that implement comission on transfers.
+
+To deal with the problem of difference in passed parameter and real transfer sum, contracts use calculated values as results of token transfers:
+- If transferFrom() is called than received amount is calculated as:
+```
+    receivedAmount = balanceAfter - balanceBefore
+```
+- If transfer() is called than transferred amount is calculated as:
+```
+    transferredAmount = balanceBefore - balanceAfter
+```
+
+You will need to account for this when using tokens with comissions.
