@@ -4,6 +4,7 @@
 
 pragma solidity 0.8.6;
 
+import "../../utils/Errors/ErrorLib.sol";
 import { IFactory } from "../interfaces/IFactory.sol";
 import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol";
 import { IWeightedVault } from "../../Vaults/WeightedVault/interfaces/IWeightedVault.sol";
@@ -71,12 +72,12 @@ contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
             )
         );
 
-        require(
+        _require(
             weightedVault.registerPool(
                 poolAddress,
                 tokens
             ),
-            "Cannot register pool in vault, aborting pool creation"
+            Errors.POOL_WAS_NOT_REGISTERED_IN_VAULT
         );
 
         emit PoolCreated(poolAddress);

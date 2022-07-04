@@ -176,12 +176,12 @@ contract('WeightedPool access tests', async(accounts) => {
             for (let user of users) {
                 await expectRevert(
                     pool.swap(balances, tokenIn, tokenOut, amountIn, minAmountIn, from(user)),
-                    "This function can only be accessed via vault"
+                    "HIKARU#301"
                 )
 
                 await expectRevert(
                     pool.swap(balances, tokenIn, tokenOut, amountIn, maxAmountIn, from(user)),
-                    "This function can only be accessed via vault"
+                    "HIKARU#301"
                 )
             }
         })

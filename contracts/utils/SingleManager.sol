@@ -4,6 +4,8 @@
 
 pragma solidity 0.8.6;
 
+import "./Errors/ErrorLib.sol";
+
 contract SingleManager {
 
     event ManagerChanged(address newManager);
@@ -43,9 +45,9 @@ contract SingleManager {
     }
 
     modifier onlyManager() {
-        require(
+        _require(
             msg.sender == manager,
-            "Only manager can execute this function."
+            Errors.CALLER_IS_NOT_MANAGER
         );
         _;
     }

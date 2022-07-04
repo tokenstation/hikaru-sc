@@ -13,7 +13,7 @@ import { SingleManager } from "../../utils/SingleManager.sol";
 import { Flashloan, IFlashloanManager } from "../Flashloan/Flashloan.sol";
 import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
-
+import "../../utils/Errors/ErrorLib.sol";
 // TODO: systematize imports
 contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, SingleManager {
 
@@ -66,9 +66,9 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         external
         onlyManager
     {
-        require(
+        _require(
             address(weightedPoolFactory) == address(0),
-            "Factory address is already set"
+            Errors.FACTORY_ADDRESS_MUST_BE_ZERO_ADDRESS
         );
         _setFactoryAddress(factoryAddress);
     }
@@ -81,9 +81,9 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
     )
         internal
     {
-        require(
+        _require(
             factoryAddress != address(0),
-            "Factory address cannot be zero"
+            Errors.ZERO_ADDRESS
         );
         emit FactoryAddressUpdate(factoryAddress);
         weightedPoolFactory = IFactory(factoryAddress);

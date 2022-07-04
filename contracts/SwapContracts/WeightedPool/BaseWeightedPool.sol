@@ -8,6 +8,7 @@ import { IERC20, IERC20Metadata, ERC20 } from "@openzeppelin/contracts/token/ERC
 import { WeightedMath } from "./libraries/WeightedMath.sol";
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { WeightedStorage } from "./WeightedStorage.sol";
+import "../../utils/Errors/ErrorLib.sol";
 
 abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     
@@ -39,9 +40,9 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
     ) 
         internal
     {
-        require(
+        _require(
             swapFee_ <= MAX_SWAP_FEE,
-            "Swap fee must be lte 5e15"
+            Errors.SWAP_FEE_PERCENTAGE_TOO_HIGH
         );
         swapFee = swapFee_;
         emit SwapFeeUpdate(swapFee_);
@@ -196,9 +197,9 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         uint256[] memory normalizedAmounts = _getNormalizedBalances(amounts_);
 
         for (uint256 tokenId = 0; tokenId < N_TOKENS; tokenId++) {
-            require(
+            _require(
                 normalizedAmounts[tokenId] != 0,
-                "Cannot initialize pool with zero token valut"
+                Errors.INITIALIZATION_ZERO_AMOUNT
             );
         }
 
@@ -327,17 +328,9 @@ abstract contract BaseWeightedPool is WeightedStorage, ERC20 {
         internal
         view
     {
-        require(
-            tokenIn != tokenOut,
-            "Cannot swap token to itself!"
-        );
-        require(
-            _getTokenId(tokenIn) >= 0,
-            "Token in is not presented in pool."
-        );
-        require(
-            _getTokenId(tokenOut) >= 0,
-            "Token out is not presented in pool."
+        _require(
+            _getTokenId(tokenIn) != _getTokenId(tokenOut),
+            Errors.SAME_TOKEN_SWAP
         );
     }
 }   

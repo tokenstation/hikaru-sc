@@ -10,6 +10,7 @@ import { IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IExit.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
+import "../../utils/Errors/ErrorLib.sol";
 
 abstract contract WeightedOperations is 
     ISellTokens, 
@@ -168,9 +169,9 @@ abstract contract WeightedOperations is
                 (id != swapRoute.length - 1) && 
                 (swapRoute.length != 1)
             ) {
-                require(
+                _require(
                     currentSwap.tokenOut == swapRoute[id+1].tokenIn,
-                    "Route contains mismatched tokens"
+                    Errors.INVALID_VIRTUAL_SWAP_PATH
                 );
             }
             currentSwap = swapRoute[id];

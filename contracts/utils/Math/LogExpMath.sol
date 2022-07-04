@@ -14,7 +14,7 @@
 
 pragma solidity 0.8.6;
 
-import "../Errors/Errors.sol";
+import "../Errors/ErrorLib.sol";
 
 /* solhint-disable */
 

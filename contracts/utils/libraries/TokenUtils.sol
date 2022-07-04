@@ -6,6 +6,7 @@ pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SafeERC20 } from "./SafeERC20.sol";
+import "../Errors/ErrorLib.sol";
 
 
 library TokenUtils {
@@ -31,6 +32,10 @@ library TokenUtils {
         uint256 balanceBefore = tokenIn.balanceOf(address(this));
         tokenIn.safeTransferFrom(user, address(this), amountIn);
         uint256 balanceAfter = tokenIn.balanceOf(address(this));
+        _require(
+            balanceAfter >= balanceBefore,
+            Errors.ERC20_INVALID_TRANSFER_FROM_BALANCE_CHANGE
+        );
         return balanceAfter - balanceBefore;
     }
 
@@ -54,6 +59,10 @@ library TokenUtils {
         uint256 balanceBefore = tokenOut.balanceOf(address(this));
         tokenOut.safeTransfer(user, amountOut);
         uint256 balanceAfter = tokenOut.balanceOf(address(this));
+        _require(
+            balanceBefore >= balanceAfter,
+            Errors.ERC20_INVALID_TRANSFER_BALANCE_CHANGE
+        );
         return balanceBefore - balanceAfter;
     }
 }

@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../Errors/Errors.sol";
+import "../Errors/ErrorLib.sol";
 
 /**
  * @dev Library used to deploy contracts with specific code. This can be used for long-term storage of immutable data as

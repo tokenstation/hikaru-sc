@@ -9,6 +9,7 @@ import { IFlashloan, IFlashloanReceiver } from "./interfaces/IFlashloan.sol";
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { ReentrancyGuard } from "../../utils/ReentrancyGuard.sol";
 import { ArrayUtils } from "../../utils/libraries/ArrayUtils.sol";
+import "../../utils/Errors/ErrorLib.sol";
 
 interface IFlashloanManager {
     /**
@@ -59,11 +60,7 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
         uint256[] memory fees = new uint256[](tokens.length);
         uint256[] memory initBalances = new uint256[](tokens.length);
 
-        require(
-            ArrayUtils.checkUniqueness(tokens),
-            "Token duplication"
-        );
-
+        ArrayUtils.checkUniqueness(tokens);
 
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             initBalances[tokenId] = tokens[tokenId].balanceOf(address(this));
@@ -75,9 +72,9 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
 
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             uint256 balanceAfter = tokens[tokenId].balanceOf(address(this));
-            require(
+            _require(
                 balanceAfter >= initBalances[tokenId] + fees[tokenId],
-                "Invalid amount repaid"
+                Errors.NOT_ENOUGH_FEE_RECEIVED
             );
             tokens[tokenId].transfer(feeReceiver, balanceAfter - initBalances[tokenId]);
         } 
@@ -92,9 +89,9 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
     ) 
         internal
     {
-        require(
+        _require(
             newFeeReceiver != address(0),
-            "Fee receiver cannot be zero address"
+            Errors.ZERO_ADDRESS
         );
         emit FeeReceiverUpdate(newFeeReceiver);
         feeReceiver = newFeeReceiver;
@@ -109,9 +106,9 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
     )
         internal
     {
-        require(
+        _require(
             flashloanFees_ <= FixedPoint.ONE,
-            "Flashloan fees cannot be larger than 1e18"
+            Errors.FLASH_LOAN_FEE_PERCENTAGE_TOO_HIGH
         );
         emit FlashloanFeesUpdate(flashloanFees_);
         flashloanFee = flashloanFees_;
