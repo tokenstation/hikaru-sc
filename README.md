@@ -62,12 +62,12 @@ While processing operations vaults perform following operations:
 │     ◄─────────────────────────────────┤    │
 └┬───▲┘        Calculation result       └────┘
  │   │
- │   │ token balances ┌─────┐
- │   └────────────────┤     │
- │                    │ERC20│
- │transfer operations │token│
- └────────────────────►     │
-                      └─────┘
+ │   │         token balances           ┌─────┐
+ │   └──────────────────────────────────┤     │
+ │                                      │ERC20│
+ │          transfer operations         │token│
+ └──────────────────────────────────────►     │
+                                        └─────┘
 ```
 
 Vaults can only interact with pools that were created by corresponding factories. \
