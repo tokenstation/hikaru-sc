@@ -99,6 +99,7 @@ library Errors {
     uint256 internal constant UNSORTED_TOKENS = 102;
     uint256 internal constant INPUT_LENGTH_MISMATCH = 103;
     uint256 internal constant ZERO_TOKEN = 104;
+    uint256 internal constant ZERO_INVARIANT = 105;
 
     // Libs
     uint256 internal constant TOKEN_DUPLICATION = 200;
@@ -109,7 +110,6 @@ library Errors {
     uint256 internal constant CODE_DEPLOYMENT_FAILED = 205;
     uint256 internal constant ZERO_ADDRESS = 206;
     uint256 internal constant ARRAY_LENGTH_MISMATCH = 207;
-    uint256 internal constant ZERO_INVARIANT = 208;
 
     // Access
     uint256 internal constant CALLER_IS_NOT_MANAGER = 300;

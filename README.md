@@ -31,15 +31,15 @@ Pool contracts are smart-contracts that implement:
 Pools allow performing operations only through vault. If any other contract/user tries to call contract to perform operation - transaction will fail.
 
 ```
-┌─────────────┐     Operation forbidden  ┌────┐
-│ Random user ├─────xxxxxxxxxxxxxxxxxxx──►    │
-└─────────────┘                          │    │
-                                         │    │
-                                         │Pool│
-┌─────────────┐                          │    │
-│Corresponding│     Operation permitted  │    │
-│    Vault    ├──────────────────────────►    │
-└─────────────┘                          └────┘
+┌─────────────┐  Operation forbidden  ┌────┐
+│ Random user ├──xxxxxxxxxxxxxxxxxxx──►    │
+└─────────────┘                       │    │
+                                      │    │
+                                      │Pool│
+┌─────────────┐                       │    │
+│Corresponding│  Operation permitted  │    │
+│    Vault    ├───────────────────────►    │
+└─────────────┘                       └────┘
 ```
 
 ### Vault contracts
@@ -140,3 +140,31 @@ To deal with the problem of difference in passed parameter and real transfer sum
 ```
 
 You will need to account for this when using tokens with comissions.
+
+```
+       balanceOf() ┌─────┐  balanceOf()
+    ┌──────────────┤ERC20├───────────────┐
+    │              │token│               │
+    │              └──┬──┘               │
+    │                 │                  │
+    │                 │                  │
+    │                 │                  │
+┌───▼───┐             ▼              ┌───▼───┐
+│Initial│     transfer operation     │ Final │
+│ token ├────────────────────────────► token │
+│balance│   (transferFrom/tranfer)   │balance│
+└───┬───┘                            └───┬───┘
+    │                                    │
+    │               ┌───┐                │
+    └───────────────►-/+◄────────────────┘
+                    └─┬─┘
+                      │
+            ┌─────────▼──────────┐
+            │received/transferred│
+            │  amount of tokens  │
+            └────────────────────┘
+```
+
+## Error description
+
+You can find smart contract error descriptions here: [Errors](./contracts/utils/Errors/README.md)
