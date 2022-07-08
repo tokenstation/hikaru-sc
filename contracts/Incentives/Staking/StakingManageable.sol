@@ -5,7 +5,7 @@ pragma solidity ^0.8.6;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 
-abstract contract Manageable is Ownable {
+abstract contract StakingManageable is Ownable {
     mapping (address => bool) private _admins;
     mapping (address => bool) private _stakingManagers;
 

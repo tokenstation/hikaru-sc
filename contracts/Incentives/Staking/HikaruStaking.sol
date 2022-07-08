@@ -6,7 +6,7 @@ import "./StakingManageable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
-contract HikaruStaking is Manageable {
+contract HikaruStaking is StakingManageable {
     using TokenUtils for IERC20;
 
     // Info of each user.
