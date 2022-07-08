@@ -6,7 +6,7 @@ import "./StakingManageable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
-contract BetterStaking is Manageable {
+contract HikaruStaking is Manageable {
     using TokenUtils for IERC20;
 
     // Info of each user.
@@ -174,7 +174,7 @@ contract BetterStaking is Manageable {
     /// @param pid_ The index of the pool. See `poolInfo`.
     /// @param amount_ LP token amount to deposit.
     function deposit(uint256 pid_, uint256 amount_) external {
-        require (amount_ > 0, "BetterStaking::deposit: amount should be positive");
+        require (amount_ > 0, "HikaruStaking::deposit: amount should be positive");
         PoolInfo storage pool = poolInfo[pid_];
         UserInfo storage user = userInfo[pid_][_msgSender()];
         updatePool(pid_);
@@ -199,7 +199,7 @@ contract BetterStaking is Manageable {
     /// @param pid_ The index of the pool. See `poolInfo`.
     /// @param amount_ Token amount to withdraw.
     function withdraw(uint256 pid_, uint256 amount_) external {
-        require (amount_ > 0, "BetterStaking::withdraw: amount should be positive");
+        require (amount_ > 0, "HikaruStaking::withdraw: amount should be positive");
 
         PoolInfo storage pool = poolInfo[pid_];
         UserInfo storage user = userInfo[pid_][_msgSender()];
@@ -207,8 +207,8 @@ contract BetterStaking is Manageable {
         // transfer first to be sure we know exact amount of tokens transferred
         amount_ = pool.depositToken.transferToUser(_msgSender(), amount_);
 
-        require (user.amount >= amount_, "BetterStaking::withdraw: withdraw amount exceeds balance");
-        require (pool.start + pool.lockTime <= uint64(block.timestamp), "BetterStaking::withdraw: lock is active");
+        require (user.amount >= amount_, "HikaruStaking::withdraw: withdraw amount exceeds balance");
+        require (pool.start + pool.lockTime <= uint64(block.timestamp), "HikaruStaking::withdraw: lock is active");
 
         updatePool(pid_);
         uint256 pending = _calcPendingReward(user, pool.accRewardPerShare);
@@ -254,7 +254,7 @@ contract BetterStaking is Manageable {
 
         updatePool(pid_);
         uint256 _unclaimed = pool.unclaimedRewardTokens;
-        require (_unclaimed > 0, "BetterStaking::pullUnclaimedTokens: zero unclaimed amount");
+        require (_unclaimed > 0, "HikaruStaking::pullUnclaimedTokens: zero unclaimed amount");
 
         pool.unclaimedRewardTokens = 0;
         _unclaimed = pool.rewardToken.transferToUser(_msgSender(), _unclaimed);
@@ -269,10 +269,10 @@ contract BetterStaking is Manageable {
     function sweep(address token_, uint256 amount_) external onlyAdmin {
         uint256 token_balance = IERC20(token_).balanceOf(address(this));
 
-        require (amount_ <= token_balance, "BetterStaking::sweep: amount exceeds balance");
+        require (amount_ <= token_balance, "HikaruStaking::sweep: amount exceeds balance");
         require (
             token_balance - amount_ >= depositedTokens[token_] + rewardTokens[token_],
-            "BetterStaking::sweep: cant withdraw reserved tokens"
+            "HikaruStaking::sweep: cant withdraw reserved tokens"
         );
 
         IERC20(token_).transferToUser(_msgSender(), amount_);
