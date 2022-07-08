@@ -10,6 +10,7 @@ import { TokenUtils } from "../utils/libraries/TokenUtils.sol";
 import "../Vaults/interfaces/IVaultPoolInfo.sol";
 import "../Vaults/interfaces/IOperations.sol";
 import "../utils/Errors/ErrorLib.sol";
+import "../Vaults/BalanceManager/interfaces/IExternalBalanceManager.sol";
 
 contract DefaultRouter {
 
@@ -444,5 +445,26 @@ contract DefaultRouter {
             type(IExitPoolSingleToken).interfaceId
         );
         return IExitPoolSingleToken(vault).calculateExitPoolSingleToken(pool, lpAmount, token);
+    }
+
+    function getPoolBalancesAndTokens(
+        address vault,
+        address pool
+    )
+        external
+        view
+        returns (address[] memory tokens, uint256[] memory balances)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IExternalBalanceManager).interfaceId
+        );
+        _checkContractInterface(
+            vault, 
+            type(IVaultPoolInfo).interfaceId
+        );
+
+        balances = IExternalBalanceManager(vault).getPoolBalances(pool);
+        tokens = IVaultPoolInfo(vault).getPoolTokens(pool);
     }
 }
