@@ -7,6 +7,7 @@ pragma solidity 0.8.6;
 import { IFactory } from "../../Factories/interfaces/IFactory.sol";
 import { ExternalBalanceManager } from "../BalanceManager/BalancesManager.sol";
 import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IWeightedStorage.sol";
+import "../../utils/Errors/ErrorLib.sol";
 
 contract WeightedVaultStorage is ExternalBalanceManager {
     address constant internal ZERO_ADDRESS = address(0);
@@ -57,17 +58,17 @@ contract WeightedVaultStorage is ExternalBalanceManager {
     }
 
     modifier registeredPool(address poolAddress) {
-        require(
+        _require(
             weightedPoolFactory.checkPoolAddress(poolAddress),
-            "Pool is not registered in factory"
+            Errors.UNKNOWN_POOL_ADDRESS
         );
         _;
     }
 
     modifier onlyFactory() {
-        require(
+        _require(
             msg.sender == address(weightedPoolFactory),
-            "Function can only be called by factory"
+            Errors.CALLER_IS_NOT_FACTORY
         );
         _;
     }

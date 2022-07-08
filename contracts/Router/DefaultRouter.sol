@@ -9,6 +9,8 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { TokenUtils } from "../utils/libraries/TokenUtils.sol";
 import "../Vaults/interfaces/IVaultPoolInfo.sol";
 import "../Vaults/interfaces/IOperations.sol";
+import "../utils/Errors/ErrorLib.sol";
+import "../Vaults/BalanceManager/interfaces/IExternalBalanceManager.sol";
 
 contract DefaultRouter {
 
@@ -17,7 +19,7 @@ contract DefaultRouter {
     using TokenUtils for IERC20;
 
     uint256 constant MAX_UINT256 = type(uint256).max;
-    mapping(address => TokenAllowanceStatus) _tokenAllowances;
+    mapping(address => TokenAllowanceStatus) public _tokenAllowances;
 
     function _checkContractInterface(
         address vault,
@@ -26,9 +28,9 @@ contract DefaultRouter {
         internal
         view
     {
-        require(
+        _require(
             IERC165(vault).supportsInterface(interfaceId),
-            "Provided vault does not support required interface"
+            Errors.VAULT_DOES_NOT_IMPLEMENT_REQUIRED_INTERFACE
         );
     }
 
@@ -443,5 +445,26 @@ contract DefaultRouter {
             type(IExitPoolSingleToken).interfaceId
         );
         return IExitPoolSingleToken(vault).calculateExitPoolSingleToken(pool, lpAmount, token);
+    }
+
+    function getPoolBalancesAndTokens(
+        address vault,
+        address pool
+    )
+        external
+        view
+        returns (address[] memory tokens, uint256[] memory balances)
+    {
+        _checkContractInterface(
+            vault, 
+            type(IExternalBalanceManager).interfaceId
+        );
+        _checkContractInterface(
+            vault, 
+            type(IVaultPoolInfo).interfaceId
+        );
+
+        balances = IExternalBalanceManager(vault).getPoolBalances(pool);
+        tokens = IVaultPoolInfo(vault).getPoolTokens(pool);
     }
 }

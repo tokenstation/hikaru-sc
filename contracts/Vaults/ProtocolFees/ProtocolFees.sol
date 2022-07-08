@@ -7,6 +7,7 @@ pragma solidity 0.8.6;
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { TokenUtils } from "../../utils/libraries/TokenUtils.sol";
+import "../../utils/Errors/ErrorLib.sol";
 
 abstract contract ProtocolFees {
     using FixedPoint for uint256;
@@ -111,9 +112,9 @@ abstract contract ProtocolFees {
         internal
     {
         for (uint256 id = 0; id < tokens.length; id++) {
-            require(
+            _require(
                 amounts[id] <= collectedFees[tokens[id]],
-                "Cannot withdraw more than accumulated"
+                Errors.TOO_MUCH_FEE_WITHDRAWN
             );
             IERC20 token = IERC20(tokens[id]);
             token.transferToUser(to[id], amounts[id]);

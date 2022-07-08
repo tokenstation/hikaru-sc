@@ -1,5 +1,5 @@
 // For pool we need to check following contracts:
-// 1. SingleManager - check if only manager can change fee setter
+// 1. Manageable - check if only manager can change fee setter
 // 2. WieghtedVault - check that swap functions can only be accessed through vault
 
 const { expectRevert } = require("@openzeppelin/test-helpers");
@@ -176,12 +176,12 @@ contract('WeightedPool access tests', async(accounts) => {
             for (let user of users) {
                 await expectRevert(
                     pool.swap(balances, tokenIn, tokenOut, amountIn, minAmountIn, from(user)),
-                    "This function can only be accessed via vault"
+                    "HIKARU#301"
                 )
 
                 await expectRevert(
                     pool.swap(balances, tokenIn, tokenOut, amountIn, maxAmountIn, from(user)),
-                    "This function can only be accessed via vault"
+                    "HIKARU#301"
                 )
             }
         })

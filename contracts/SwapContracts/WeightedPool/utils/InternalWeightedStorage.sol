@@ -8,6 +8,7 @@ import { WeightedMath } from "../libraries/WeightedMath.sol";
 import { FixedPoint } from "../../../utils/Math/FixedPoint.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ArrayUtils } from "../../../utils/libraries/ArrayUtils.sol";
+import "../../../utils/Errors/ErrorLib.sol";
 
 contract InternalStorage {
 
@@ -94,26 +95,28 @@ contract InternalStorage {
         address[] memory tokens,
         uint256[] memory weights
     ) {
-        ArrayUtils.checkArrayLength(tokens, weights);
-        require(
+        _require(
+            ArrayUtils.checkArrayLength(tokens, weights),
+            Errors.POOL_WEIGHTS_ARRAY_LENGTH_MISMATCH
+        );
+        _require(
             tokens.length <= MAX_TOKENS,
-            "Cannot create pool with more than 20 tokens"
+            Errors.MAX_TOKENS
         );
-        require(
-            ArrayUtils.checkUniqueness(tokens),
-            "Token duplication"
-        );
+
+        ArrayUtils.checkUniqueness(tokens);
+
         uint256 weightsSum = 0;
         for (uint256 weightId = 0; weightId < weights.length; weightId++) {
-            require(
+            _require(
                 WeightedMath._MIN_WEIGHT <= weights[weightId],
-                "Weights must be gte 1e16"
+                Errors.MIN_WEIGHT
             );
             weightsSum += weights[weightId];
         }
-        require(
+        _require(
             weightsSum == FixedPoint.ONE,
-            "Invalid total weight sum"
+            Errors.INVALID_WEIGHTS_SUM
         );
 
         factoryAddress = factoryAddress_;
@@ -131,16 +134,6 @@ contract InternalStorage {
         token8  = tokens.length >= 8  ? tokens[7 ] : ZERO_ADDRESS;
         token9  = tokens.length >= 9  ? tokens[8 ] : ZERO_ADDRESS;
         token10 = tokens.length >= 10 ? tokens[9 ] : ZERO_ADDRESS;
-        // token11 = tokens.length >= 11 ? tokens[10] : ZERO_ADDRESS;
-        // token12 = tokens.length >= 12 ? tokens[11] : ZERO_ADDRESS;
-        // token13 = tokens.length >= 13 ? tokens[12] : ZERO_ADDRESS;
-        // token14 = tokens.length >= 14 ? tokens[13] : ZERO_ADDRESS;
-        // token15 = tokens.length >= 15 ? tokens[14] : ZERO_ADDRESS;
-        // token16 = tokens.length >= 16 ? tokens[15] : ZERO_ADDRESS;
-        // token17 = tokens.length >= 17 ? tokens[16] : ZERO_ADDRESS;
-        // token18 = tokens.length >= 18 ? tokens[17] : ZERO_ADDRESS;
-        // token19 = tokens.length >= 19 ? tokens[18] : ZERO_ADDRESS;
-        // token20 = tokens.length >= 20 ? tokens[19] : ZERO_ADDRESS;
 
         weight1  = weights[0];
         weight2  = weights[1];
@@ -152,16 +145,6 @@ contract InternalStorage {
         weight8  = weights.length >= 8  ? weights[7 ] : 0;
         weight9  = weights.length >= 9  ? weights[8 ] : 0;
         weight10 = weights.length >= 10 ? weights[9 ] : 0;
-        // weight11 = weights.length >= 11 ? weights[10] : 0;
-        // weight12 = weights.length >= 12 ? weights[11] : 0;
-        // weight13 = weights.length >= 13 ? weights[12] : 0;
-        // weight14 = weights.length >= 14 ? weights[13] : 0;
-        // weight15 = weights.length >= 15 ? weights[14] : 0;
-        // weight16 = weights.length >= 16 ? weights[15] : 0;
-        // weight17 = weights.length >= 17 ? weights[16] : 0;
-        // weight18 = weights.length >= 18 ? weights[17] : 0;
-        // weight19 = weights.length >= 19 ? weights[18] : 0;
-        // weight20 = weights.length >= 20 ? weights[19] : 0;
 
 
         // This section also checks that smart contracts with provided addresses exist
@@ -176,15 +159,5 @@ contract InternalStorage {
         multiplier8  = tokens.length >= 8  ? 10**(18 - IERC20Metadata(tokens[7 ]).decimals()) : 0;
         multiplier9  = tokens.length >= 9  ? 10**(18 - IERC20Metadata(tokens[8 ]).decimals()) : 0;
         multiplier10 = tokens.length >= 10 ? 10**(18 - IERC20Metadata(tokens[9 ]).decimals()) : 0;
-        // multiplier11 = tokens.length >= 11 ? 10**(18 - IERC20Metadata(tokens[10]).decimals()) : 0;
-        // multiplier12 = tokens.length >= 12 ? 10**(18 - IERC20Metadata(tokens[11]).decimals()) : 0;
-        // multiplier13 = tokens.length >= 13 ? 10**(18 - IERC20Metadata(tokens[12]).decimals()) : 0;
-        // multiplier14 = tokens.length >= 14 ? 10**(18 - IERC20Metadata(tokens[13]).decimals()) : 0;
-        // multiplier15 = tokens.length >= 15 ? 10**(18 - IERC20Metadata(tokens[14]).decimals()) : 0;
-        // multiplier16 = tokens.length >= 16 ? 10**(18 - IERC20Metadata(tokens[15]).decimals()) : 0;
-        // multiplier17 = tokens.length >= 17 ? 10**(18 - IERC20Metadata(tokens[16]).decimals()) : 0;
-        // multiplier18 = tokens.length >= 18 ? 10**(18 - IERC20Metadata(tokens[17]).decimals()) : 0;
-        // multiplier19 = tokens.length >= 19 ? 10**(18 - IERC20Metadata(tokens[18]).decimals()) : 0;
-        // multiplier20 = tokens.length >= 20 ? 10**(18 - IERC20Metadata(tokens[19]).decimals()) : 0;
     }
 }

@@ -13,6 +13,7 @@ import { Flashloan } from "../Flashloan/Flashloan.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 import { IVaultPoolInfo } from "../interfaces/IVaultPoolInfo.sol";
 import "../interfaces/ISwap.sol";
+import "../../utils/Errors/ErrorLib.sol";
 
 // TODO: return swapFee on operations and calculate protocol fee
 // TODO: add contract for extracting protocol fee from swap fee
@@ -119,9 +120,9 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
                 (pathLength != 1)
             ) {
                 currentSwap = swapRoute[id];
-                require(
+                _require(
                     currentSwap.tokenOut == swapRoute[id+1].tokenIn,
-                    "Route contains mismatched tokens"
+                    Errors.INVALID_VIRTUAL_SWAP_PATH
                 );
             }
         }
@@ -374,9 +375,9 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         internal
         view
     {
-        require(
+        _require(
             weightedPoolFactory.checkPoolAddress(pool),
-            "Pool is not registered in factory"
+            Errors.UNKNOWN_POOL_ADDRESS
         );
     }
 
@@ -386,9 +387,9 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         internal
         view
     {
-        require(
+        _require(
             deadline >= block.timestamp,
-            "Deadline check failed"
+            Errors.DEADLINE
         );
     }
 

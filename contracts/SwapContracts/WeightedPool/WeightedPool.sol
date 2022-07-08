@@ -10,9 +10,10 @@ import { IWeightedPool } from "./interfaces/IWeightedPool.sol";
 import { WeightedMath } from "./libraries/WeightedMath.sol";
 import { WeightedStorage } from "./WeightedStorage.sol";
 import { BaseWeightedPool } from "./BaseWeightedPool.sol";
-import { SingleManager } from "../../utils/SingleManager.sol";
+import { Manageable } from "../../utils/Manageable.sol";
+import "../../utils/Errors/ErrorLib.sol";
 
-contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
+contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
 
     // TODO: Check other todo's
     // TODO: add documentation
@@ -31,7 +32,7 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
     ) 
         WeightedStorage(factoryAddress_, vaultAddress_, tokens_, weights_)
         BaseWeightedPool(swapFee_, name_, symbol_)
-        SingleManager(poolManager_)
+        Manageable(poolManager_)
     { 
 
     }
@@ -63,9 +64,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             tokenOut,
             amountIn
         );
-        require(
+        _require(
             amountOut >= minAmountOut,
-            "Not enough tokens received"
+            Errors.SWAP_NOT_ENOUGH_RECEIVED
         );
     }
 
@@ -92,9 +93,9 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, SingleManager {
             tokenOut, 
             amountOut
         );
-        require(
+        _require(
             amountIn <= maxAmountIn,
-            "Too much tokens is used for swap"
+            Errors.SWAP_TOO_MUCH_PAID
         );
     }
 

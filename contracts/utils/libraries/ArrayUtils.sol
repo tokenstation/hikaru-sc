@@ -5,55 +5,49 @@
 pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../Errors/ErrorLib.sol";
 
 library ArrayUtils {
     /**
      * @notice Check that there are only unique values in array
+     * @dev If array is not sorted - fails either with token duplication or unsorted array error
      * @param array Array with values
-     * @return flag True - array contains unique elements, False - there are possible duplications
      */
-    function checkUniqueness(uint256[] memory array) internal pure returns (bool flag) {
-        if (array.length == 1) return true;
-
-        flag = true;
-        uint256 val = array[0];
-        for (uint256 valId = 1; valId < array.length; valId++) {
-            flag = flag && (val < array[valId]);
-            if (!flag) return flag;
-            val = array[valId];
-        }
-    }
-
-    /**
-     * @notice Check that there are only unique values in array
-     * @param array Array with values
-     * @return flag True - array contains unique elements, False - there are possible duplications
-     */
-    function checkUniqueness(address[] memory array) internal pure returns (bool flag) {
-        if (array.length == 1) return true;
-
-        flag = true;
+    function checkUniqueness(address[] memory array) internal pure {
+        if (array.length == 1) return;
+        
         address val = array[0];
         for (uint256 valId = 1; valId < array.length; valId++) {
-            flag = flag && (val < array[valId]);
-            if (!flag) return flag;
+             _require(
+                val != array[valId],
+                Errors.TOKEN_DUPLICATION
+            );
+            _require(
+                val < array[valId],
+                Errors.UNSORTED_ARRAY
+            );
             val = array[valId];
         }
     }
 
     /**
      * @notice Check that there are only unique values in array
+     * @dev If array is not sorted - fails either with token duplication or unsorted array error
      * @param array Array with values
-     * @return flag True - array contains unique elements, False - there are possible duplications
      */
-    function checkUniqueness(IERC20[] memory array) internal pure returns (bool flag) {
-        if (array.length == 1) return true;
+    function checkUniqueness(IERC20[] memory array) internal pure {
+        if (array.length == 1) return;
 
-        flag = true;
         IERC20 val = array[0];
         for (uint256 valId = 1; valId < array.length; valId++) {
-            flag = flag && (val < array[valId]);
-            if (!flag) return flag;
+             _require(
+                val != array[valId],
+                Errors.TOKEN_DUPLICATION
+            );
+            _require(
+                val < array[valId],
+                Errors.UNSORTED_ARRAY
+            );
             val = array[valId];
         }
     }
@@ -64,11 +58,8 @@ library ArrayUtils {
      * @param l1 Length of first array
      * @param l2 Lenght of second array
      */
-    function checkArrayLength(uint256 l1, uint256 l2) internal pure {
-        require(
-            l1 == l2,
-            "Array length mismatch"
-        );
+    function checkArrayLength(uint256 l1, uint256 l2) internal pure returns (bool) {
+        return l1 == l2;
     }
 
     /**
@@ -77,8 +68,8 @@ library ArrayUtils {
      * @param array1 Length of first array
      * @param array2 Lenght of second array
      */
-    function checkArrayLength(uint256[] memory array1, address[] memory array2) internal pure {
-        checkArrayLength(array1.length, array2.length);
+    function checkArrayLength(uint256[] memory array1, address[] memory array2) internal pure returns (bool) {
+        return checkArrayLength(array1.length, array2.length);
     }
 
     /**
@@ -87,8 +78,8 @@ library ArrayUtils {
      * @param array1 Length of first array
      * @param array2 Lenght of second array
      */
-    function checkArrayLength(address[] memory array1, uint256[] memory array2) internal pure {
-        checkArrayLength(array1.length, array2.length);
+    function checkArrayLength(address[] memory array1, uint256[] memory array2) internal pure returns (bool) {
+        return checkArrayLength(array1.length, array2.length);
     }
 
     /**
@@ -97,8 +88,8 @@ library ArrayUtils {
      * @param array1 Length of first array
      * @param array2 Lenght of second array
      */
-    function checkArrayLength(uint256[] memory array1, uint256[] memory array2) internal pure {
-        checkArrayLength(array1.length, array2.length);
+    function checkArrayLength(uint256[] memory array1, uint256[] memory array2) internal pure returns (bool) {
+        return checkArrayLength(array1.length, array2.length);
     }
 
     /**
@@ -107,8 +98,8 @@ library ArrayUtils {
      * @param array1 Length of first array
      * @param array2 Lenght of second array
      */
-    function checkArrayLength(address[] memory array1, address[] memory array2) internal pure {
-        checkArrayLength(array1.length, array2.length);
+    function checkArrayLength(address[] memory array1, address[] memory array2) internal pure returns (bool) {
+        return checkArrayLength(array1.length, array2.length);
     }
 
     /**
@@ -117,8 +108,8 @@ library ArrayUtils {
      * @param array1 Length of first array
      * @param array2 Lenght of second array
      */
-    function checkArrayLength(IERC20[] memory array1, address[] memory array2) internal pure {
-        checkArrayLength(array1.length, array2.length);
+    function checkArrayLength(IERC20[] memory array1, address[] memory array2) internal pure returns (bool) {
+        return checkArrayLength(array1.length, array2.length);
     }
 
     /**
@@ -127,7 +118,7 @@ library ArrayUtils {
      * @param array1 Length of first array
      * @param array2 Lenght of second array
      */
-    function checkArrayLength(IERC20[] memory array1, uint256[] memory array2) internal pure {
-        checkArrayLength(array1.length, array2.length);
+    function checkArrayLength(IERC20[] memory array1, uint256[] memory array2) internal pure returns (bool) {
+        return checkArrayLength(array1.length, array2.length);
     }
 }

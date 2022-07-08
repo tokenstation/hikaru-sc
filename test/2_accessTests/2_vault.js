@@ -28,8 +28,12 @@ contract('WeightedVault', async(accounts) => {
             );
         })
         it('Change factory address', async() => {
-            const tx = await weightedVault.setFactoryAddress(weightedVault.address, from(admin));
-            expectEvent(tx, 'FactoryAddressUpdate', {newFactoryAddress: weightedVault.address});
+            // Factory address is already set in migrations so this will fail
+            await expectRevert.unspecified(
+                weightedVault.setFactoryAddress(weightedVault.address, from(admin)),
+                'HIKARU#501'
+            )
+            // expectEvent(tx, 'FactoryAddressUpdate', {newFactoryAddress: weightedVault.address});
         })
 
         it('Change flashloan fees as random user', async() => {

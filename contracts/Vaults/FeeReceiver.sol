@@ -4,10 +4,11 @@
 
 pragma solidity 0.8.6;
 
-import { SingleManager } from "../utils/SingleManager.sol";
+import { Manageable } from "../utils/Manageable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "../utils/libraries/SafeERC20.sol";
 import { ArrayUtils } from "../utils/libraries/ArrayUtils.sol";
+import "../utils/Errors/ErrorLib.sol";
 
 interface IFeeReceiver {
     /**
@@ -19,9 +20,7 @@ interface IFeeReceiver {
     function withdrawFeesTo(IERC20[] memory tokens, address[] memory to, uint256[] memory amounts) external;
 }
 
-// TODO: add dao? fee receiver or additional functional (i'm not sure if it's needed)
-
-contract FeeReceiver is SingleManager, IFeeReceiver {
+contract FeeReceiver is Manageable, IFeeReceiver {
 
     using SafeERC20 for IERC20;
     using ArrayUtils for IERC20[];
@@ -31,7 +30,7 @@ contract FeeReceiver is SingleManager, IFeeReceiver {
     constructor (
         address manager_
     )
-        SingleManager(manager_)
+        Manageable(manager_)
     {
 
     }
@@ -48,8 +47,15 @@ contract FeeReceiver is SingleManager, IFeeReceiver {
         override
         onlyManager
     {
-        ArrayUtils.checkArrayLength(tokens, to);
-        ArrayUtils.checkArrayLength(tokens, amounts);
+        _require(
+            ArrayUtils.checkArrayLength(tokens, to),
+            Errors.ARRAY_LENGTH_MISMATCH
+        );
+        _require(
+            ArrayUtils.checkArrayLength(tokens, amounts),
+            Errors.ARRAY_LENGTH_MISMATCH
+        );
+        
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             if (address(tokens[tokenId]) == ZERO_ADDRESS) {
                 payable(to[tokenId]).transfer(amounts[tokenId]);
