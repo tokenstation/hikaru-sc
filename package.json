@@ -20,7 +20,8 @@
     "start-evm-fork": "ganache",
     "compile": "truffle compile --all",
     "migrate": "truffle migrate --network development --compile-none --reset",
-    "test": "truffle test --network development --compile-none"
+    "test": "truffle test --network development --compile-none",
+    "extract-abi": "yarn compile && node ./extractAbi.js"
   },
   "repository": {
     "type": "git",

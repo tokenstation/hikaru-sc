@@ -10,11 +10,6 @@ import { WeightedPool } from "../../SwapContracts/WeightedPool/WeightedPool.sol"
 import { IWeightedVault } from "../../Vaults/WeightedVault/interfaces/IWeightedVault.sol";
 import { BaseSplitCodeFactory } from "../../utils/CodeSplitter/BaseSplitCodeFactory.sol";
 
-// TODO: create base factory contract which implements checking pools origin (if it was deployed using factory)
-// TODO: add contract for setting default pool manager
-// TODO: check that all setters emit events
-// TODO: add interface for weighted factory
-
 contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
     IWeightedVault internal weightedVault;
 
