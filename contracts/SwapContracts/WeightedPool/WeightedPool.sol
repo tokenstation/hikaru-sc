@@ -15,11 +15,6 @@ import "../../utils/Errors/ErrorLib.sol";
 
 contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
 
-    // TODO: Check other todo's
-    // TODO: add documentation
-    // TODO: apply optimisations where possible and it does not obscure code
-    // TODO: check real-world gas costs, must be around 100k or less (check how it may be achieved)
-
     constructor(
         address factoryAddress_,
         address vaultAddress_,
