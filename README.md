@@ -19,6 +19,7 @@ This repository contains following:
     - [Initialization tests](./test/1_initializationTests/)
     - [Setters tests](./test/2_accessTests/)
     - [Functionality tests](./test/3_operationTests/)
+  
     
 ## Basic smart contracts information
 
@@ -286,6 +287,26 @@ User perspective:
 4. Router transfers tokens from user
 5. If necessary router performs calculations for operation
 6. Router calls vault with receiver set to msg.sender so user will receive operation result tokens
+
+
+## Deployed contracts
+
+Router smart contract: [TYqRA6CyCYMTwzZv7hSotiudMRxMHJBZKY](https://shasta.tronscan.org/#/contract/TYqRA6CyCYMTwzZv7hSotiudMRxMHJBZKY/code)
+
+Vault smart contract: [TUw7TvNHGZJGMFm3RxUtKxYfBKafVHVFBf](https://shasta.tronscan.org/#/contract/TUw7TvNHGZJGMFm3RxUtKxYfBKafVHVFBf/code)
+
+Factory smart contract: [TXrsYxtgenb722F8sWJkR8HH3diSBEWtrn](https://shasta.tronscan.org/#/contract/TXrsYxtgenb722F8sWJkR8HH3diSBEWtrn/code)
+
+Pool smart contracts: 
+- [TQyKsMAHNNL4fypUJzc8wy9m5zGk5jxcKA](https://shasta.tronscan.org/#/contract/TQyKsMAHNNL4fypUJzc8wy9m5zGk5jxcKA/code)
+- [TWYniMuTc11cW9Sk6gY5NAbKoq7Lpmot3T](https://shasta.tronscan.org/#/contract/TWYniMuTc11cW9Sk6gY5NAbKoq7Lpmot3T/code)
+- [TDe1yuD647gM9bfmwLsZBHS1g1JpWVtJ4V](https://shasta.tronscan.org/#/contract/TDe1yuD647gM9bfmwLsZBHS1g1JpWVtJ4V/code)
+
+TRC20 token contracts: 
+- [TApJzmfyYrXd6afvfWLKpqqeBxa7hwS9Cw](https://shasta.tronscan.org/#/contract/TApJzmfyYrXd6afvfWLKpqqeBxa7hwS9Cw/code)
+- [TH9pNgBcqsSV6NNGQr1EHRbnQ29RJQipA1](https://shasta.tronscan.org/#/contract/TH9pNgBcqsSV6NNGQr1EHRbnQ29RJQipA1/code)
+- [TAHLygq9zmpSASCkwvExVgxNfGMwjuqQ1u](https://shasta.tronscan.org/#/contract/TAHLygq9zmpSASCkwvExVgxNfGMwjuqQ1u/code)
+- [TSF96eswa74vJPpeUuPt9mGdPhs5Ahooi4](https://shasta.tronscan.org/#/contract/TSF96eswa74vJPpeUuPt9mGdPhs5Ahooi4/code)
 
 
 ## Misc info
