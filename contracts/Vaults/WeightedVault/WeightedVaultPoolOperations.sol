@@ -280,13 +280,14 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
 
         (tokensReceived, fees) = IWeightedPool(pool).exitPoolSingleToken(balances, user, lpAmount, token);
         _protocolFees = _deductFees(tokens, fees);
-        for (uint256 id = 0; id < tokens.length; id++) {
-            tokensReceived[id] -= fees[id];
-        }
 
         _transferTokensTo(tokens, tokensReceived, receiver);
-        _postLpUpdate(pool, lpAmount, balances, tokensReceived, receiver, false);
         amountOut = tokensReceived[IWeightedStorage(pool).getTokenId(token)];
+
+        for (uint256 id = 0; id < tokens.length; id++) {
+            tokensReceived[id] += _protocolFees[id];
+        }
+        _postLpUpdate(pool, lpAmount, balances, tokensReceived, receiver, false);
     }
 
     /**

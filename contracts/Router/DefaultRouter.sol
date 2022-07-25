@@ -19,7 +19,7 @@ contract DefaultRouter {
     using TokenUtils for IERC20;
 
     uint256 constant MAX_UINT256 = type(uint256).max;
-    mapping(address => TokenAllowanceStatus) public _tokenAllowances;
+    mapping(address => mapping(address => TokenAllowanceStatus)) public _tokenAllowances;
 
     function _checkContractInterface(
         address vault,
@@ -52,7 +52,7 @@ contract DefaultRouter {
     )
         internal
     {
-        TokenAllowanceStatus ts = _tokenAllowances[tokenAddress];
+        TokenAllowanceStatus ts = _tokenAllowances[vault][tokenAddress];
         if (ts == TokenAllowanceStatus.INF_ALLOWANCE) return;
 
         IERC20 token = IERC20(tokenAddress);
@@ -64,7 +64,7 @@ contract DefaultRouter {
         if (ts == TokenAllowanceStatus.NO_ALLOWANCE) {
             token.approve(vault, MAX_UINT256);
             uint256 allowance = token.allowance(address(this), vault);
-            _tokenAllowances[tokenAddress] = allowance == MAX_UINT256 ?
+            _tokenAllowances[vault][tokenAddress] = allowance == MAX_UINT256 ?
                 TokenAllowanceStatus.INF_ALLOWANCE :
                 TokenAllowanceStatus.REQUIRES_ALLOWANCE_EVERY_TIME;
             return;
