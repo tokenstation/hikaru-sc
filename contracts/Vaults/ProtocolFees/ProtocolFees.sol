@@ -38,9 +38,8 @@ abstract contract ProtocolFees {
         returns (uint256[] memory deductedFees)
     {
         uint256 _protocolFee = protocolFee;
-        if (_protocolFee == 0) return amounts;
-
         deductedFees = new uint256[](tokens.length);
+
         for (uint256 id = 0; id < tokens.length; id++) {
            deductedFees[id] = _deductFee(tokens[id], amounts[id], _protocolFee);
         }

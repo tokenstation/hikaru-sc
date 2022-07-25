@@ -72,15 +72,22 @@ contract('WeightedPool', async(accounts) => {
             symbol: 'TC',
             decimals: 18,
             address: ''
+        },
+        {
+            name: 'tokenD',
+            symbol: 'TC',
+            decimals: 6,
+            address: ''
         }
     ];
     let poolName = 'Hikaru WP ';
     let poolSymbol = 'HWP ';
 
     const tokenWeights = [
-        toBN(3.33e17),
-        toBN(3.33e17),
-        toBN(3.34e17)
+        toBN(2.5e17),
+        toBN(2.5e17),
+        toBN(2.5e17),
+        toBN(2.5e17)
     ];
     const swapFee = toBN(0.003e18);
 
@@ -232,7 +239,8 @@ contract('WeightedPool', async(accounts) => {
             const amount = toBN(1e5);
             const tokens = await pool.getTokens.call();
             let amounts = await generateEqualAmountsForTokens(tokens, amount);
-            amounts[getRandomId(amounts.length)] = toBN(0);
+            amounts[0] = toBN(0);
+            amounts[1] = toBN(0);
             const joinerAmounts = amounts.map((val) => val.mul(toBN(-1)));
             const watchAddresses = [joiner, weightedVault.address];
             const deadline = getDeadline();

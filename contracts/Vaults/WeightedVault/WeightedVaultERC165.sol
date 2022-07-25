@@ -11,6 +11,7 @@ import { IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IExit.sol";
 import { IFlashloan } from "../Flashloan/interfaces/IFlashloan.sol";
 import { IExternalBalanceManager } from "../BalanceManager/interfaces/IExternalBalanceManager.sol";
 import { IWeightedVault } from "./interfaces/IWeightedVault.sol";
+import { IVaultPoolInfo } from "../interfaces/IVaultPoolInfo.sol";
 
 
 contract WeightedVaultERC165 is IERC165 {
@@ -46,6 +47,8 @@ contract WeightedVaultERC165 is IERC165 {
 
             interfaceId == type(IExternalBalanceManager).interfaceId ||
 
-            interfaceId == type(IWeightedVault).interfaceId;
+            interfaceId == type(IWeightedVault).interfaceId ||
+            
+            interfaceId == type(IVaultPoolInfo).interfaceId;
     }
 }

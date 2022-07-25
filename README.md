@@ -2,6 +2,8 @@
 
 This repository contains smart contracts for Hikaru Dex.
 
+Hikaru finance is DeX platform that enables integration of any imaginable DeX project as long as it follows implements pre-defined interfaces.
+
 ## Repository structure
 
 This repository contains following:
@@ -20,13 +22,95 @@ This repository contains following:
     
 ## Basic smart contracts information
 
+Basic smart-contract system structure:
+
+```
+┌────────┐                     ┌────────────┐       Pool creation
+│  User  │                     │Pool Factory├────────────────────────────────┐
+└───┬────┘                     │  contract  │                                │
+    │                          └─┬─────────▲┘                                │
+    │ request                    │         │                                 │
+    │   to            information│         │Checking                         │
+    │ perform            about   │         │ wether                      ┌───▼───┐
+    │operation            new    │         │  pool                       │ Pools │
+    │                    pools   │         │   is                        └▲─────┬┘
+    │                            │         │  from             calculation│     │calculation
+    │                            │         │ known               request  │     │   result
+    │                            │         │factory                       │     │
+┌───▼────┐    user request      ┌▼─────────┴┐                             │     │
+│ Router └──────────────────────►   Vault   └─────────────────────────────┘     │
+│contract◄──────────────────────┐ contract  ◄───────────────────────────────────┘
+└────────┘ user request result  └┬─────────▲┘
+                                 │         │
+                        transfers│         │balance
+                                 │         │ info
+                                 │         │
+                                ┌▼─────────┴┐
+                                │   TRC20   │
+                                │   token   │
+                                └───────────┘
+```
+
+
 ### Pool contracts
 
-Pool contracts are smart-contracts that implement:
-- Calculations for pool operations (swaps/joins/exits)
-- Liquidity pool ownership via LP tokens
+Pool contracts are parameter storage and calculators of the system.
+They implement required math and store parameters that are specific to the pool.
 
-### Interactions with other contracts
+#### Pool componentes
+
+Pools consist of 3 components:
+```
+┌──────────────────────┐
+│    Pool's storage    │
+│                      │
+├──────────────────────┤
+├──────────────────────┤
+│  Pool's math library │
+│                      │
+├──────────────────────┤
+├──────────────────────┤
+│   Pool's layer for   │
+│interacting with vault│
+└──────────────────────┘
+```
+
+Where:
+- Pool's storage -> storage that hold constant parameters that are set during pool creation process and parameters that can be changed (swap fee coefficient, manager address)
+- Pool's math library -> library that implements calculations logic
+- Pool's layer for interacting with vault -> this layer performs pre-checks, ensures that correct parameters are passed to math library and interacts with vault
+
+#### Interaction with pool
+
+All interactions with pool are done in following manner:
+```
+                                              Get required paramters    ┌──────────────┐
+                                    ┌───────────────────────────────────►              │
+                                    │                                   │Pool's storage│
+                                    │       ┌───────────────────────────┤              │
+                                    │       │    Return parameters      └──────────────┘
+                                    │       │
+┌─────┐    Calculation request    ┌─┴───────▼─┐
+│     ├───────────────────────────►Interaction│
+│Vault│                           │           │
+│     ◄───────────────────────────┤   Layer   │
+└─────┘    Calculation result     └─▲───────┬─┘
+                                    │       │    Calculate with provided
+                                    │       │    and checked parameters  ┌─────────────┐
+                                    │       └────────────────────────────► Pool's math │
+                                    │                                    │             │
+                                    └────────────────────────────────────┤   library   │
+                                                    Return calculation   └─────────────┘
+                                                         results
+```
+
+Step-by-step description:
+1. Valid request is received from Vault smart-contract
+2. Interaction layer receives request and pre-processes it - checks that parameters are valid and brings them to the right form for math library
+3. With known parameters math library performs calculations and returns results to interaction layer
+4. Results are returned to the vault that requested calculations by interaction layer
+
+#### Interactions with other contracts
 
 Pools allow performing operations only through vault. If any other contract/user tries to call contract to perform operation - transaction will fail.
 
@@ -44,11 +128,68 @@ Pools allow performing operations only through vault. If any other contract/user
 
 ### Vault contracts
 
-Vault contracts are smart-contracts intended for:
-- Performing operations with vault's pools
-- Act as token storage for pools
+Vault contracts are token-storages for pools and are gateways to interact with pools.
 
-### Interactions with other contracts
+#### Vault components
+
+Developed vault consists of:
+```
+┌────────────────┐
+│ Vault's storage│
+├────────────────┤
+├────────────────┤
+│ Pool's balances│
+│     storage    │
+├────────────────┤
+├────────────────┤
+│ Layer for pools│
+│   interaction  │
+├────────────────┤
+├────────────────┤
+│ Layer for user │
+│   interaction  │
+├────────────────┤
+├────────────────┤
+│   Flashloans   │
+└────────────────┘
+```
+
+Where:
+- Vault's storage -> stores vault-specific variables
+- Pool's balance storage -> stores and modifies pool balances
+- Layer for pools interaction -> implements interaction with pools for performing calculations
+- Layer for user interaction -> implmenets interaction with users via [standart interfaces](./contracts/Vaults/interfaces/)
+- Flashloans -> vault allows users to use this tool using [implemented interfaces](./contracts/Vaults/Flashloan/interfaces/)
+
+#### Vaults as tokens storages
+
+Vaults track and store balances of pools, so in vault's token balance consists of pool's token balances:
+```
+┌────────────────────────────┐
+│                 ┌───────┐  │
+│                 │ Pool1 │  │
+│                 │virtual│  │
+│                 │ token │  │
+│                 │balance│  │
+│                 ├───────┤  │
+│                 │ Pool2 │  │
+│                 │virtual│  │
+│   Vault         │ token │  │
+│   token         │balance│  │
+│  balance        ├───────┤  │
+│                 │ ..... │  │
+│                 ├───────┤  │
+│                 │ PoolN │  │
+│                 │virtual│  │
+│                 │ token │  │
+│                 │balance│  │
+│                 └───────┘  │
+└────────────────────────────┘
+```
+
+Pools in this system have virtual tokens balances, but it may depend on implementation.
+
+#### Interaction with other contracts
 
 While processing operations vaults perform following operations:
 - Transfer tokens to/from user
@@ -70,19 +211,41 @@ While processing operations vaults perform following operations:
                                         └─────┘
 ```
 
-Vaults can only interact with pools that were created by corresponding factories. \
-For example: 
-- Weighted Vault cannot interact with NewType Pools which were created by factory other than Weighted Pool Factory.
 
-### Factory contracts
+Vaults can only interact with pools that were created by known factory:
+```
+    ┌───────┐    Pool creation
+    │Unknown├───────────────────────┐
+    │facotry│                       │
+    └───────┘                       │
+                                    │
+                               ┌────▼────┐
+                               │Pool from│
+                   ┌─xxxxxxxxx─► unknown │
+                   │           │ factory │
+                   │           └─────────┘
+    ┌───────┐      │
+    │ Vault ├──────┤
+    └───┬───┘      │
+        │          │
+  Pool  │          │           ┌─────────┐
+ origin │          │           │Pool from│
+ check  │          └───────────►  known  │
+        │                      │ factory │
+        │                      └────▲────┘
+    ┌───▼───┐                       │
+    │ Known │    Pool creation      │
+    │factory├───────────────────────┘
+    └───────┘
+```
 
-Factory contracts are used to:
-- Create new pool contracts
-- Track what pool contracts belong to factory
+### Pool factory contracts
 
-### Interations with other contracts
+Pool factory contracts are contracts that create new pools and can confirm that pool was deployed by factory.
 
-Factory must call Vault contract to register created pool
+#### Interations with other contracts
+
+When new pool is created, factory calls vault to register new pool. During this call vault performs necessary preparations for pool to function correctly.
 
 ```
 ┌───────┐    New pool registration   ┌─────┐
@@ -95,7 +258,7 @@ Factory must call Vault contract to register created pool
 
 Router contracts are used as single entry point for users to intract with system, reducing amount of required approvals for tokens and performing required checks.
 
-### Operations flow
+#### Operations flow
 
 ```
 

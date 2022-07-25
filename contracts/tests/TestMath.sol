@@ -122,6 +122,6 @@ contract TestMath {
             swapFee
         );
         pf = fee.mulDown(protocolFee);
-        balanceChange = -int256(amountOut - fee);
+        balanceChange = -int256(amountOut + pf);
     }
 }
