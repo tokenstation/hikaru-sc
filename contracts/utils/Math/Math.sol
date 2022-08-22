@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-import "../errors/ErrorLib.sol";
+import "../Errors/ErrorLib.sol";
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow checks.

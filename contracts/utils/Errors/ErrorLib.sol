@@ -135,8 +135,9 @@ library Errors {
     uint256 internal constant VAULT_DOES_NOT_IMPLEMENT_REQUIRED_INTERFACE = 500;
     uint256 internal constant FACTORY_ADDRESS_MUST_BE_ZERO_ADDRESS = 501;
     uint256 internal constant INVALID_VIRTUAL_SWAP_PATH = 502;
-    uint256 internal constant UNKNOWN_POOL_ADDRESS = 503;
-    uint256 internal constant DEADLINE = 504;
+    uint256 internal constant EMPTY_SWAP_PATH = 503;
+    uint256 internal constant UNKNOWN_POOL_ADDRESS = 504;
+    uint256 internal constant DEADLINE = 505;
 
     // Factory
     uint256 internal constant POOL_WAS_NOT_REGISTERED_IN_VAULT = 600;

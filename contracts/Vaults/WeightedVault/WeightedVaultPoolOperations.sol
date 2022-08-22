@@ -15,9 +15,6 @@ import { IVaultPoolInfo } from "../interfaces/IVaultPoolInfo.sol";
 import "../interfaces/ISwap.sol";
 import "../../utils/Errors/ErrorLib.sol";
 
-// TODO: return swapFee on operations and calculate protocol fee
-// TODO: add contract for extracting protocol fee from swap fee
-
 abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan, ProtocolFees, IVaultPoolInfo {
 
     event Swap(address pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address user);
@@ -48,160 +45,171 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         return IWeightedStorage(pool).getTokens();
     }
 
+    /**
+     * @notice Check if swap path is valid
+     * @param swapPath Path which is used to perform swaps
+     * @return swapPathValidity Is swap path valid
+     */
+    function checkSwapPathValidity(
+        SwapRoute[] calldata swapPath
+    )
+        public
+        pure
+        returns (bool swapPathValidity)
+    {
+        swapPathValidity = true;
+        uint256 swapPathLength = swapPath.length;
+        SwapRoute memory currentSwap;
+        if (swapPathLength != 1) {
+            for (uint256 id = 0; id < swapPathLength-1; id++) {
+                currentSwap = swapPath[id];
+                swapPathValidity = 
+                    swapPathValidity &&
+                    currentSwap.tokenOut == swapPath[id+1].tokenIn;
+                if (!swapPathValidity) break;
+            }
+        }
+    }
+
 
     /*************************************************
                     Internal functions
      *************************************************/
 
-    /**
-     * @notice Perform sell tokens swap without token transfers
-     * @param pool Address of pool
-     * @param tokenIn Token that will be used for swaps
-     * @param tokenOut Token that will be received as swap result
-     * @param amountIn Amount of tokens to sell
-     * @param minAmountOut Minimal amount out
-     * @param receiver Who will receive tokens
-     * @param protocolFee_ Protocol fee
-     * @param transferToUser If parameter is true, resulting tokens will be transferred to receiver
-     * @return amountOut Amount of tokens received as swap result
-     */
-    function _lightSwap(
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address receiver,
-        uint256 protocolFee_,
-        bool transferToUser
+    function _requireSwapPathValidity(
+        SwapRoute[] calldata swapPath
     )
         internal
-        returns (uint256 amountOut)
+        pure
     {
-        uint256[] memory poolBalances = _getPoolBalances(pool);
-        uint256 fee;
-        (amountOut, fee) = IWeightedPool(pool).swap(poolBalances, tokenIn, tokenOut, amountIn, minAmountOut);
-
-        uint256 _protocolFee = _deductFee(tokenIn, fee, protocolFee_);
-        amountIn -= _protocolFee;
-        if (transferToUser) amountOut = _transferTo(tokenOut, receiver, amountOut);
-        _postSwap(pool, tokenIn, amountIn, tokenOut, amountOut, receiver);
+        _require(
+            checkSwapPathValidity(swapPath),
+            Errors.INVALID_VIRTUAL_SWAP_PATH
+        );
     }
 
     /**
-     * @notice Internal function for virtual swap
-     * @param swapRoute Swap path that will be used
-     * @param amountIn Initial amount of tokens to use for swap
-     * @param minAmountOut Minimal result amount of tokens
+     * @notice Perform swap using provided swapPath. Swap must be either full-sell or full-buy (no variation allowed)
+     * @dev All swaps are treated as virtual swaps. To perform single swap of any type - just provide single-element array
+     * @param swapPath Array containing swap path
+     * @param swapType What swap must be performed
+     * @param swapAmount Amount of tokens used for swap or amount of tokens that must be received
+     * @param minMaxAmount Minimum amount of tokens received/Maximum amount of tokens paid
      * @param receiver Who will receive tokens
-     * @return amountOut Amount of tokens received as swap result
+     * @return swapResult Amount of tokens user received or paid as swap result
      */
-    function _virtualSwap(
-        VirtualSwapInfo[] calldata swapRoute,
-        uint256 amountIn,
-        uint256 minAmountOut,
+    function _swap(
+        SwapRoute[] calldata swapPath,
+        SwapType swapType,
+        uint256 swapAmount,
+        uint256 minMaxAmount,
         address receiver
     )
         internal
-        returns (uint256 amountOut)
+        returns (uint256 swapResult)
     {
-        uint256 protocolFee_ = protocolFee;
-        uint256 pathLength = swapRoute.length;
-        VirtualSwapInfo memory currentSwap = swapRoute[0];
-        amountIn = _transferFrom(currentSwap.tokenIn, msg.sender, amountIn);
-        amountOut = amountIn;
-        
-        // If there are mismatches in token addresses
-        // They will be spotted before actual operation begin
-        // And therefore will save some gas
-        for (uint256 id = 0; id < pathLength; id++) {
-            if (
-                (id != pathLength - 1) && 
-                (pathLength != 1)
-            ) {
-                currentSwap = swapRoute[id];
-                _require(
-                    currentSwap.tokenOut == swapRoute[id+1].tokenIn,
-                    Errors.INVALID_VIRTUAL_SWAP_PATH
-                );
+        // uint256 swapPathLength = swapPath.length;
+        _require(
+            swapPath.length > 0,
+            Errors.EMPTY_SWAP_PATH
+        );
+        _requireSwapPathValidity(swapPath);
+
+        // address user = msg.sender;
+        bool sell = swapType == SwapType.Sell;
+
+        swapAmount = sell ? 
+            _transferFrom(swapPath[0].tokenIn, msg.sender, swapAmount) : 
+            _transferTo(swapPath[swapPath.length - 1].tokenOut, receiver, swapAmount);
+
+        SwapRoute memory currentSwap;
+        uint256 inMemoryProtocolFee = protocolFee;
+        uint256 currentMinMax;
+        for (uint256 swapId = 0; swapId < swapPath.length; swapId++) {
+            currentSwap = swapPath[sell ? swapId : swapPath.length - swapId - 1]; 
+            currentMinMax = swapId == swapPath.length - 1 ? 
+                minMaxAmount : (sell ? 1 : type(uint256).max);
+            
+            swapAmount = _performSwap(
+                currentSwap, 
+                swapType, 
+                swapAmount, 
+                minMaxAmount, 
+                inMemoryProtocolFee
+            );
+            if (swapId == swapPath.length - 1) {
+                swapResult = sell ?
+                    _transferTo(currentSwap.tokenOut, receiver, swapAmount) :
+                    _transferFrom(currentSwap.tokenIn, msg.sender, swapAmount);
             }
         }
-
-        for (uint256 id = 0; id < pathLength; id++) {
-            currentSwap = swapRoute[id];
-            _checkPoolAddress(currentSwap.pool);
-            // Value of minAmountOut is hardcoded to 1
-            // This is done intentional, as we are only interested in
-            // Resulting value of swap
-            amountOut = _lightSwap(
-                currentSwap.pool, 
-                currentSwap.tokenIn, 
-                currentSwap.tokenOut, 
-                amountOut, 
-                id == pathLength - 1 ? minAmountOut : 1,
-                receiver,
-                protocolFee_,
-                id == pathLength - 1
-            );
-        }
-
-        return amountOut;
     }
 
-    /**
-     * @notice Sell or buy tokens
-     * @param pool Address of pool
-     * @param tokenIn Token to sell or to use for token buying
-     * @param tokenOut Token received as sell result or to buy
-     * @param amount Amount to sell or to buy
-     * @param minMaxAmount Minimal amount to receive or maximum amount to pay
-     * @param receiver Who will receive tokens
-     * @param exactIn Sell or Buy tokens
-     * @return calculationResult Amount of tokens received/that must be paid
-     */
-    function _swap(
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amount,
+    function _performSwap(
+        SwapRoute memory swap,
+        SwapType swapType,
+        uint256 swapAmount,
         uint256 minMaxAmount,
-        address receiver,
-        bool exactIn
+        uint256 inMemoryProtocolFee
     )
         internal
         returns (uint256 calculationResult)
     {
-        address user = msg.sender;
-
-        uint256[] memory poolBalances = _getPoolBalances(pool);
-        amount = exactIn ? 
-            _transferFrom(tokenIn, user, amount) : 
-            _transferTo(tokenOut, receiver, amount);
-
+        bool sell = swapType == SwapType.Sell;
+        _checkPoolAddress(swap.pool);
+        uint256[] memory poolBalances = _getPoolBalances(swap.pool);
         uint256 fee;
+        (calculationResult, fee) = sell ? 
+            IWeightedPool(swap.pool).swap(poolBalances, swap.tokenIn, swap.tokenOut, swapAmount, minMaxAmount) :
+            IWeightedPool(swap.pool).swapExactOut(poolBalances, swap.tokenIn, swap.tokenOut, swapAmount, minMaxAmount);
+        
+        uint256 deductedProtocolFee = _deductFee(swap.tokenIn, fee, inMemoryProtocolFee);
 
-        (calculationResult, fee) = exactIn ?
-            IWeightedPool(pool).swap(poolBalances, tokenIn, tokenOut, amount, minMaxAmount) :
-            IWeightedPool(pool).swapExactOut(poolBalances, tokenIn, tokenOut, amount, minMaxAmount);
-
-        uint256 _protocolFee = _deductFee(tokenIn, fee, protocolFee);
-
-        calculationResult = exactIn ? 
-            _transferTo(tokenOut, receiver, calculationResult) :
-            _transferFrom(tokenIn, user, calculationResult);
-
-        uint256 tokenInBalanceDelta = exactIn ?
-            amount - _protocolFee : 
-            calculationResult - _protocolFee;
-
+        uint256 tokenInBalanceDelta = sell ?
+            swapAmount - deductedProtocolFee : 
+            calculationResult - deductedProtocolFee;
+        
         _postSwap(
-            pool, 
-            tokenIn, 
+            swap.pool, 
+            swap.tokenIn, 
             tokenInBalanceDelta, 
-            tokenOut, 
-            exactIn ? calculationResult : amount, 
-            user
+            swap.tokenOut, 
+            sell ? calculationResult : swapAmount, 
+            msg.sender
         );
+    }
+
+    function _calculateSwap(
+        SwapRoute[] calldata swapPath,
+        SwapType swapType,
+        uint256 swapAmount
+    ) 
+        internal
+        view
+        returns (uint256 calculationResult)
+    {
+        _requireSwapPathValidity(swapPath);
+
+        bool sell = swapType == SwapType.Sell;
+        uint256 swapPathLength = swapPath.length;
+
+        for (uint256 swapId = 0; swapId < swapPathLength; swapId++) {
+            SwapRoute memory currentSwap = swapPath[sell ? swapId : swapPathLength - swapId - 1];
+
+            _checkPoolAddress(currentSwap.pool);
+            uint256[] memory poolBalances = _getPoolBalances(currentSwap.pool);
+
+            calculationResult = 
+                IWeightedPool(currentSwap.pool).calculateSwap(
+                    poolBalances, 
+                    currentSwap.tokenIn, 
+                    currentSwap.tokenOut, 
+                    swapAmount,
+                    sell
+                );
+
+            swapAmount = calculationResult;
+        }
     }
 
     /**
@@ -449,7 +457,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     {
         balanceDeltas = new uint256[](tokens.length);
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
-            balanceDeltas[tokenId] = IERC20(tokens[tokenId]).transferFromUser(user, amounts[tokenId]);
+            balanceDeltas[tokenId] = _transferFrom(tokens[tokenId], user, amounts[tokenId]);
         }
     }
 
@@ -470,7 +478,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     {
         balanceDeltas = new uint256[](tokens.length);
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
-            balanceDeltas[tokenId] = IERC20(tokens[tokenId]).transferToUser(user, amounts[tokenId]);
+            balanceDeltas[tokenId] = _transferTo(tokens[tokenId], user, amounts[tokenId]);
         }
     }
     

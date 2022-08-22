@@ -6,12 +6,13 @@
     "bn-chai": "^1.0.1",
     "bn.js": "^5.2.1",
     "dotenv": "^16.0.1",
+    "glob": "7.2.0",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.5.26",
     "web3-utils": "^1.7.3"
   },
-  "name": "dswap-contracts-v1",
-  "description": "DSwap - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
+  "name": "hikaru-sc",
+  "description": "Hikaru - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -35,7 +36,10 @@
   "author": "tokenstation.dev",
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/tokenstation/DSwap-Contracts-V1/issues"
+    "url": "https://github.com/tokenstation/hikaru-sc/issues"
   },
-  "homepage": "https://github.com/tokenstation/DSwap-Contracts-V1#readme"
+  "homepage": "https://github.com/tokenstation/hikaru-sc#readme",
+  "devDependencies": {
+    "hardhat": "^2.10.2"
+  }
 }

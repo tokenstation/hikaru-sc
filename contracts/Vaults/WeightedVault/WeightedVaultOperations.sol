@@ -4,7 +4,7 @@
 
 pragma solidity 0.8.6;
 
-import { ISellTokens, IBuyTokens, IVirtualSwap, VirtualSwapInfo } from "../interfaces/ISwap.sol";
+import "../interfaces/ISwap.sol";
 import { IFullPoolJoin, IPartialPoolJoin, IJoinPoolSingleToken } from "../interfaces/IJoin.sol";
 import { IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IExit.sol";
 import { WeightedVaultPoolOperations } from "./WeightedVaultPoolOperations.sol";
@@ -13,9 +13,7 @@ import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeig
 import "../../utils/Errors/ErrorLib.sol";
 
 abstract contract WeightedOperations is 
-    ISellTokens, 
-    IBuyTokens, 
-    IVirtualSwap,
+    ISwap,
     IFullPoolJoin, 
     IPartialPoolJoin, 
     IJoinPoolSingleToken,
@@ -32,157 +30,36 @@ abstract contract WeightedOperations is
     }
 
     /**
-     * @inheritdoc ISellTokens
+     * @inheritdoc ISwap
      */
-    function sellTokens(
-        address pool, 
-        address tokenIn, 
-        address tokenOut, 
-        uint256 sellAmount, 
-        uint256 minAmountOut, 
-        address receiver, 
+    function swap(
+        SwapRoute[] calldata swapRoute,
+        SwapType swapType,
+        uint256 swapAmount,
+        uint256 minMaxAmount,
+        address receiver,
         uint64 deadline
     )
         external
         override
         reentrancyGuard
-        returns (uint256 amountOut)
-    {
-        _preOpChecks(pool, deadline);
-        amountOut = _swap(
-            pool, 
-            tokenIn, 
-            tokenOut, 
-            sellAmount, 
-            minAmountOut, 
-            receiver,
-            true
-        );
-    }
-
-    /**
-     * @inheritdoc ISellTokens
-     */
-    function calculateSellTokens(
-        address pool, 
-        address tokenIn, 
-        address tokenOut, 
-        uint256 swapAmount
-    )
-        external
-        override
-        view
-        returns (uint256 amountOut)
-    {
-        amountOut = _calculateSwap(pool, tokenIn, tokenOut, swapAmount, true);
-    }
-
-    /**
-     * @inheritdoc IBuyTokens
-     */
-    function buyTokens(
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountToBuy,
-        uint256 maxAmountIn,
-        address receiver,
-        uint64 deadline
-    ) 
-        external
-        override
-        reentrancyGuard
-        returns (uint256 amountIn)
-    {
-        _preOpChecks(pool, deadline);
-        amountIn = _swap(
-            pool, 
-            tokenIn, 
-            tokenOut, 
-            amountToBuy, 
-            maxAmountIn, 
-            receiver,
-            false
-        );
-    }
-
-    /**
-     * @inheritdoc IBuyTokens
-     */
-    function calculateBuyTokens(
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountOut
-    ) 
-        external
-        override
-        view 
-        returns (uint256 amountIn)
-    {
-        amountIn = _calculateSwap(pool, tokenIn, tokenOut, amountOut, false);
-    }   
-
-    /**
-     * @inheritdoc IVirtualSwap
-     */
-    function virtualSwap(
-        VirtualSwapInfo[] calldata swapRoute, 
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address receiver,
-        uint64 deadline
-    ) 
-        external
-        override
-        reentrancyGuard
-        returns (uint256 amountOut)
+        returns (uint256 swapResult)
     {
         _deadlineCheck(deadline);
-        amountOut = _virtualSwap(
-            swapRoute,
-            amountIn,
-            minAmountOut,
-            receiver
-        );
+        return _swap(swapRoute, swapType, swapAmount, minMaxAmount, receiver);
     }
 
-    // CAUTION!
-    // This function will provide correct result only
-    // When there are no pool duplication
-    /**
-     * @inheritdoc IVirtualSwap
-     */
-    function calculateVirtualSwap(
-        VirtualSwapInfo[] calldata swapRoute,
-        uint256 amountIn
+    function calculateSwap(
+        SwapRoute[] calldata swapPath,
+        SwapType swapType,
+        uint256 swapAmount
     )
-        external
+        external 
         override
-        view
-        returns (uint256 amountOut)
+        view 
+        returns (uint256 swapResult)
     {
-        amountOut = amountIn;
-        VirtualSwapInfo memory currentSwap;
-        for (uint256 id = 0; id < swapRoute.length; id++) {
-            if (
-                (id != swapRoute.length - 1) && 
-                (swapRoute.length != 1)
-            ) {
-                _require(
-                    currentSwap.tokenOut == swapRoute[id+1].tokenIn,
-                    Errors.INVALID_VIRTUAL_SWAP_PATH
-                );
-            }
-            currentSwap = swapRoute[id];
-            amountOut = _calculateSwap(
-                currentSwap.pool, 
-                currentSwap.tokenIn, 
-                currentSwap.tokenOut, 
-                amountOut, 
-                true
-            );
-        }
+        return _calculateSwap(swapPath, swapType, swapAmount);
     }
 
     /**

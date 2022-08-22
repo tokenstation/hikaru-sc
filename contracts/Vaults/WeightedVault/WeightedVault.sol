@@ -14,6 +14,7 @@ import { Flashloan, IFlashloanManager } from "../Flashloan/Flashloan.sol";
 import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 import "../../utils/Errors/ErrorLib.sol";
+
 // TODO: systematize imports
 contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, Manageable {
 
@@ -47,8 +48,6 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         onlyFactory
         returns (bool registerStatus)
     {
-        // TODO: add call for approve from router
-        // i.g.: if user wants to swap token that was not swap before, router performs infinite approve to vault of this token
         emit PoolRegistered(pool);
         return _registerPoolBalance(pool, tokens.length);
     }
