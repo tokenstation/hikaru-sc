@@ -15,6 +15,7 @@ import { IVaultPoolInfo } from "../interfaces/IVaultPoolInfo.sol";
 import "../interfaces/ISwap.sol";
 import "../../utils/Errors/ErrorLib.sol";
 
+
 abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan, ProtocolFees, IVaultPoolInfo {
 
     event Swap(address pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address user);
@@ -296,30 +297,6 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
             tokensReceived[id] += _protocolFees[id];
         }
         _postLpUpdate(pool, lpAmount, balances, tokensReceived, receiver, false);
-    }
-
-    /**
-     * @notice Calculate sell/buy result
-     * @param pool Address of pool
-     * @param tokenIn Token to sell/use to buy
-     * @param tokenOut Token to receive/token to buy
-     * @param swapAmount Amount of tokens to sell/buy
-     * @param exactIn Sell tokens or buy tokens
-     * @return swapResult Result token amount
-     */
-    function _calculateSwap(
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 swapAmount,
-        bool exactIn
-    )
-        internal
-        view
-        returns (uint256 swapResult)
-    {
-        uint256[] memory balances = _getPoolBalances(pool);
-        swapResult = IWeightedPool(pool).calculateSwap(balances, tokenIn, tokenOut, swapAmount, exactIn);
     }
 
     /*************************************************

@@ -9,6 +9,7 @@
     "glob": "7.2.0",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.5.26",
+    "typescript": "^4.7.4",
     "web3-utils": "^1.7.3"
   },
   "name": "hikaru-sc",
@@ -22,6 +23,9 @@
     "compile": "truffle compile --all",
     "migrate": "truffle migrate --network development --compile-none --reset",
     "test": "truffle test --network development --compile-none",
+    "hh-test": "npx hardhat test",
+    "hh-gas-report": "REPORT_GAS=true npx hardhat test",
+    "hh-coverage": "npx hardhat coverage",
     "extract-abi": "yarn compile && node ./extractAbi.js"
   },
   "repository": {
@@ -40,6 +44,21 @@
   },
   "homepage": "https://github.com/tokenstation/hikaru-sc#readme",
   "devDependencies": {
-    "hardhat": "^2.10.2"
+    "@ethersproject/abi": "^5.7.0",
+    "@ethersproject/providers": "^5.7.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.4",
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@typechain/ethers-v5": "^10.1.0",
+    "@typechain/hardhat": "^6.1.2",
+    "chai": "^4.3.6",
+    "ethers": "^5.7.0",
+    "hardhat": "^2.10.2",
+    "hardhat-deploy": "^0.11.12",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.7.21",
+    "typechain": "^8.1.0"
   }
 }

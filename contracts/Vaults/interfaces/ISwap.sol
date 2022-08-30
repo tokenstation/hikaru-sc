@@ -15,6 +15,12 @@ enum SwapType {Sell, Buy}
 interface ISwap {
     /**
      * @notice Swap one token to another
+     * @dev swapRoute is used as a guide of how to perform swap operation
+     * @dev If we want to sell token A to get token C and swap path is A -> B -> C then swapRoute will be:
+     * @dev [pool1, A, B], [pool2, B, C]
+     * @dev If we want to buy token A using token C and swap path is A -> B -> C then swapRoute will be:
+     * @dev [pool1, C, B], [pool2, B, A]
+     * @dev for Buy operation swapRoute is calculated backwards
      * @param swapRoute Route that specifies how to perform swap
      * @param swapType Sell or Buy tokens
      * @param swapAmount Amount of tokens to sell/buy
@@ -33,6 +39,13 @@ interface ISwap {
 
     /**
      * @notice Calculate swap with provided swap route
+     * @dev WARNING: calculations will be invalid if there is pool duplication in swapRoute
+     * @dev swapRoute is used as a guide of how to perform swap operation
+     * @dev If we want to sell token A to get token C and swap path is A -> B -> C then swapRoute will be:
+     * @dev [pool1, A, B], [pool2, B, C]
+     * @dev If we want to buy token A using token C and swap path is A -> B -> C then swapRoute will be:
+     * @dev [pool1, C, B], [pool2, B, A]
+     * @dev for Buy operation swapRoute is calculated backwards
      * @param swapRoute Route that specifies how to perform swap
      * @param swapType Sell or Buy tokens
      * @param swapAmount Amount of tokens to sell/buy

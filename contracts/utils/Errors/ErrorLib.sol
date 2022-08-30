@@ -147,5 +147,6 @@ library Errors {
     uint256 internal constant FLASH_LOAN_FEE_PERCENTAGE_TOO_HIGH = 702;
     uint256 internal constant NOT_ENOUGH_FEE_RECEIVED = 703;
     uint256 internal constant TOO_MUCH_FEE_WITHDRAWN = 704;
+    uint256 internal constant PROTOCOL_FEE_TOO_HIGH = 705;
 
 }

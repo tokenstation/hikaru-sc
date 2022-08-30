@@ -51,7 +51,7 @@ abstract contract Manageable is Context {
      * @dev Throws if the sender is not the owner.
      */
     function _checkManager() internal view virtual {
-        require(manager() == _msgSender(), "Ownable: caller is not the owner");
+        require(manager() == _msgSender(), "Manageable: caller is not the manager");
     }
 
     /**
@@ -70,7 +70,7 @@ abstract contract Manageable is Context {
      * Can only be called by the current owner.
      */
     function changeManager(address manager_) public virtual onlyManager {
-        require(manager_ != address(0), "Ownable: new owner is the zero address");
+        require(manager_ != address(0), "Manageable: new manager is the zero address");
         _changeManager(manager_);
     }
 

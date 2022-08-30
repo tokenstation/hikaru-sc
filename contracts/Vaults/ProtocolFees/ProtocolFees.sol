@@ -80,6 +80,10 @@ abstract contract ProtocolFees {
     )
         internal
     {
+        _require(
+            newProtocolFee <= FixedPoint.ONE,
+            Errors.PROTOCOL_FEE_TOO_HIGH
+        );
         emit ProtocolFeeUpdate(newProtocolFee);
         protocolFee = newProtocolFee;
     }
