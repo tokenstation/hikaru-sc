@@ -23,6 +23,7 @@
     "compile": "truffle compile --all",
     "migrate": "truffle migrate --network development --compile-none --reset",
     "test": "truffle test --network development --compile-none",
+    "hh-compile": "npx hardhat compile",
     "hh-test": "npx hardhat test",
     "hh-gas-report": "REPORT_GAS=true npx hardhat test",
     "hh-coverage": "npx hardhat coverage",
@@ -59,6 +60,7 @@
     "hardhat-deploy": "^0.11.12",
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.7.21",
+    "ts-node": "^10.9.1",
     "typechain": "^8.1.0"
   }
 }

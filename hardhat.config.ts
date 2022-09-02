@@ -13,7 +13,8 @@ const config: HardhatUserConfig = {
       tags: ['test'],
       deploy: ['./hhDeploy'],
       loggingEnabled: true,
-      allowUnlimitedContractSize: true
+      allowUnlimitedContractSize: true,
+      hardfork: 'istanbul'
     },
     localhost: {
       url: 'http://127.0.0.1:8545/'

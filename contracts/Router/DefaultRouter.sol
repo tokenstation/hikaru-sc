@@ -83,18 +83,6 @@ contract DefaultRouter {
         }
     }
 
-    function _createArraysForTokenAndAmount(
-        address token,
-        uint256 amount
-    )
-        internal
-        pure
-        returns (address[] memory tokens, uint256[] memory amounts)
-    {
-        tokens = new address[](1); tokens[0] = token;
-        amounts = new uint256[](1); amounts[0] = amount;
-    }
-
     function _transferTokenFromUser(
         address token,
         address user,
@@ -220,7 +208,7 @@ contract DefaultRouter {
         );
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
-        return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
+        return IPartialPoolJoin(vault).partialPoolJoin(pool, tokens, amounts, msg.sender, deadline);
     }
 
     function calculatePartialJoin(
