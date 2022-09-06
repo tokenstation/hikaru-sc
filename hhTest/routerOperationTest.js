@@ -35,6 +35,7 @@ describe('Router -> join functions', function() {
                 weightedVault.address,
                 weightedPool.address,
                 tokenAmounts,
+                expectedLpAmount,
                 getDeadline()
             )
         ).to.emit(
@@ -98,6 +99,7 @@ describe('Router -> join functions', function() {
                 weightedPool.address,
                 joinTokens.map((val) => val.address),
                 tokenAmounts,
+                expectedLpAmount,
                 getDeadline()
             )
         ).to.emit(
@@ -161,6 +163,7 @@ describe('Router -> join functions', function() {
                 weightedPool.address,
                 tokenToJoin.address,
                 tokenAmount,
+                expectedLpAmount,
                 getDeadline()
             )
         ).to.emit(
@@ -344,6 +347,7 @@ describe('DefaultRouter -> exit functions', function() {
                 weightedVault.address,
                 weightedPool.address,
                 lpAmount,
+                expectedTokenAmounts,
                 getDeadline()
             )
         ).to.emit(
@@ -393,6 +397,7 @@ describe('DefaultRouter -> exit functions', function() {
                 weightedPool.address,
                 1,
                 tokens.map((val) => val.address),
+                tokens.map((val) => 0),
                 getDeadline()
             )
         ).to.be.revertedWith(
@@ -426,6 +431,7 @@ describe('DefaultRouter -> exit functions', function() {
                 weightedPool.address,
                 lpAmount,
                 exitToken.address,
+                expectedAmountOut,
                 getDeadline()
             )
         ).to.emit(
@@ -500,6 +506,7 @@ async function initializePool() {
         weightedVault.connect(owner).joinPool(
             weightedPool.address,
             tokenAmounts,
+            tokens.map(() => 0),
             owner.address,
             getDeadline()
         )

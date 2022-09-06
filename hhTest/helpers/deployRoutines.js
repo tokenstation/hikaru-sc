@@ -1,7 +1,7 @@
 const hre = require('hardhat');
 const { SignerWithAddress } = require('@nomiclabs/hardhat-ethers/signers');
 const { BigNumber } = require('ethers');
-const { FeeReceiver__factory, WeightedVault__factory, WeightedPoolFactory__factory, DefaultRouter__factory, ERC20Mock__factory, WeightedPool__factory } = require('../../typechain');
+const { WeightedVault__factory, WeightedPoolFactory__factory, DefaultRouter__factory, ERC20Mock__factory, WeightedPool__factory } = require('../../typechain');
 const { from } = require('./utils');
 
 
@@ -17,7 +17,6 @@ const { from } = require('./utils');
 
 /**
  * @typedef CustomManagers
- * @property {String} feeReceiver
  * @property {String} weightedVault
  */
 
@@ -40,11 +39,6 @@ async function deployHikaruContracts(
     const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
     /**
-     * @type {FeeReceiver__factory}
-     */
-    const FeeReceiver = await hre.ethers.getContractFactory('FeeReceiver');
-    FeeReceiver.connect(deployer);
-    /**
      * @type {WeightedVault__factory}
      */
     const WeightedVault = await hre.ethers.getContractFactory('WeightedVault');
@@ -60,14 +54,9 @@ async function deployHikaruContracts(
     const DefaultRouter = await hre.ethers.getContractFactory('DefaultRouter');
     DefaultRouter.connect(deployer);
 
-    const feeReceiver = await FeeReceiver.deploy(
-        defaultManager
-    );
-    await feeReceiver.deployed();
     const weightedVault = await WeightedVault.deploy(
         ZERO_ADDRESS, 
         flashloanFee, 
-        feeReceiver.address, 
         protocolFee
     );
     await weightedVault.deployed();
@@ -88,7 +77,6 @@ async function deployHikaruContracts(
     );
 
     return {
-        feeReceiver, 
         weightedVault,
         weightedPoolFactory,
         defaultRouter

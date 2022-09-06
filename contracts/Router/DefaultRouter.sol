@@ -161,6 +161,7 @@ contract DefaultRouter {
         address vault,
         address pool,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         uint64 deadline
     ) 
         external
@@ -173,7 +174,7 @@ contract DefaultRouter {
         address[] memory tokens = IVaultPoolInfo(vault).getPoolTokens(pool);
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
-        return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
+        return IFullPoolJoin(vault).joinPool(pool, amounts, minLPAmount, msg.sender, deadline);
     }
 
     function calculateFullJoin(
@@ -197,6 +198,7 @@ contract DefaultRouter {
         address pool,
         address[] memory tokens,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         uint64 deadline
     ) 
         external
@@ -208,7 +210,7 @@ contract DefaultRouter {
         );
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
-        return IPartialPoolJoin(vault).partialPoolJoin(pool, tokens, amounts, msg.sender, deadline);
+        return IPartialPoolJoin(vault).partialPoolJoin(pool, tokens, amounts, minLPAmount, msg.sender, deadline);
     }
 
     function calculatePartialJoin(
@@ -233,6 +235,7 @@ contract DefaultRouter {
         address pool,
         address token,
         uint256 amount,
+        uint256 minLPAmount,
         uint64 deadline
     ) 
         external
@@ -244,7 +247,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(token, amount, vault);
         amount = _transferTokenFromUser(token, msg.sender, amount);
-        return IJoinPoolSingleToken(vault).singleTokenPoolJoin(pool, token, amount, msg.sender, deadline);
+        return IJoinPoolSingleToken(vault).singleTokenPoolJoin(pool, token, amount, minLPAmount, msg.sender, deadline);
     }
 
     function calculateSingleTokenJoin(
@@ -268,6 +271,7 @@ contract DefaultRouter {
         address vault,
         address pool,
         uint256 lpAmount,
+        uint256[] memory minAmountsOut,
         uint64 deadline
     ) 
         external
@@ -279,7 +283,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IFullPoolExit(vault).exitPool(pool, lpAmount, msg.sender, deadline);
+        return IFullPoolExit(vault).exitPool(pool, lpAmount, minAmountsOut, msg.sender, deadline);
     }
 
     function calculateExit(
@@ -303,6 +307,7 @@ contract DefaultRouter {
         address pool,
         uint256 lpAmount,
         address[] memory tokens,
+        uint256[] memory minAmountsOut,
         uint64 deadline
     ) 
         external
@@ -314,7 +319,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IPartialPoolExit(vault).partialPoolExit(pool, lpAmount, tokens, msg.sender, deadline);
+        return IPartialPoolExit(vault).partialPoolExit(pool, lpAmount, tokens, minAmountsOut, msg.sender, deadline);
     }
 
     function calculatePartialExit(
@@ -339,6 +344,7 @@ contract DefaultRouter {
         address pool,
         uint256 lpAmount,
         address token,
+        uint256 minAmountOut,
         uint64 deadline
     ) 
         external
@@ -350,7 +356,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IExitPoolSingleToken(vault).exitPoolSingleToken(pool, lpAmount, token, msg.sender, deadline);
+        return IExitPoolSingleToken(vault).exitPoolSingleToken(pool, lpAmount, token, minAmountOut, msg.sender, deadline);
     }
 
     function calculateSingleTokenExit(

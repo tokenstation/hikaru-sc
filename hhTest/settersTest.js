@@ -10,20 +10,20 @@ const { sortContractsByAddress } = require('./helpers/utils');
 describe('Test Manageable contract parts', function() {
     it ('Manageable -> changeManager (invalid caller)', async function() {
         const {
-            feeReceiver,
             owner,
+            weightedPool,
             deployer,
             unknownUser
         } = await loadFixture(deploySystemWithDefaultParameters);
 
         await expect(
-            feeReceiver.connect(unknownUser).changeManager(
+            weightedPool.connect(unknownUser).changeManager(
                 unknownUser.address
             )
         ).to.be.revertedWith('Manageable: caller is not the manager')
 
         await expect(
-            feeReceiver.connect(owner).changeManager(
+            weightedPool.connect(owner).changeManager(
                 unknownUser.address
             )
         ).not.to.be.reverted;
@@ -31,33 +31,15 @@ describe('Test Manageable contract parts', function() {
 
     it ('Manageable -> changeManager (ZeroAddress)', async function() {
         const {
-            feeReceiver,
+            weightedPool,
             owner
         } = await loadFixture(deploySystemWithDefaultParameters);
 
         await expect(
-            feeReceiver.connect(owner).changeManager(
+            weightedPool.connect(owner).changeManager(
                 ZERO_ADDRESS
             )
         ).to.be.revertedWith('Manageable: new manager is the zero address')
-    })
-})
-
-describe('Test fee receiver protected functions', function() {
-    it('feeReceiver -> withdrawFeesTo (invalid caller)', async function() {
-        const {
-            feeReceiver,
-            unknownUser,
-            tokens
-        } = await loadFixture(deploySystemWithDefaultParameters);
-
-        await expect(
-            feeReceiver.connect(unknownUser).withdrawFeesTo(
-                tokens.map((val) => val.address),
-                new Array(tokens.length).fill(unknownUser.address),
-                new Array(tokens.length).fill(1)
-            )
-        ).to.be.revertedWith('Manageable: caller is not the manager');
     })
 })
 
@@ -123,29 +105,6 @@ describe('Test weighted vault protected functions', function() {
         await expect(
             weightedVault.connect(owner).setFlashloanFees(1)
         ).to.emit(weightedVault, 'FlashloanFeesUpdate').withArgs(1);
-    })
-
-    it('Weighted vault -> setFeeReceiver', async function() {
-        const {
-            weightedVault,
-            unknownUser,
-            owner,
-            deployer
-        } = await loadFixture(deploySystemWithDefaultParameters);
-
-        for (const user of [unknownUser, deployer]) {
-            await expect(
-                weightedVault.connect(user).setFeeReceiver(user.address)
-            ).to.be.revertedWith('Manageable: caller is not the manager')
-        }
-
-        await expect(
-            weightedVault.connect(owner).setFeeReceiver(ZERO_ADDRESS)
-        ).to.be.revertedWith('HIKARU#206')
-
-        await expect(
-            weightedVault.connect(owner).setFeeReceiver(owner.address)
-        ).to.emit(weightedVault, 'FeeReceiverUpdate').withArgs(owner.address);
     })
 
     it('Weighted vault -> setProtocolFee', async function() {
@@ -320,7 +279,6 @@ async function deploySystemWithDefaultParameters() {
  * @property {SignerWithAddress} deployer
  * @property {SignerWithAddress} owner
  * @property {SignerWithAddress} unknownUser
- * @property {import('../typechain').FeeReceiver} feeReceiver,
  * @property {import('../typechain').WeightedVault} weightedVault
  * @property {import('../typechain').WeightedPoolFactory} weightedPoolFactory
  * @property {import('../typechain').DefaultRouter} defaultRouter

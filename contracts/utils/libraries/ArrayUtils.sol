@@ -8,6 +8,16 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../Errors/ErrorLib.sol";
 
 library ArrayUtils {
+
+    function checkZeroElement(uint256[] memory array) internal pure {
+        for (uint256 id = 0; id < array.length; id++) {
+            _require(
+                array[id] != 0,
+                Errors.UNEXPECTED_ZERO_ELEMENT
+            );
+        }
+    }
+
     /**
      * @notice Check that there are only unique values in array
      * @dev If array is not sorted - fails either with token duplication or unsorted array error

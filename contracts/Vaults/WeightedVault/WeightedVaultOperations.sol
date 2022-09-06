@@ -68,6 +68,7 @@ abstract contract WeightedOperations is
     function joinPool(
         address pool,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         address receiver,
         uint64 deadline
     ) 
@@ -77,7 +78,7 @@ abstract contract WeightedOperations is
         returns (uint256 lpAmount)
     {
         _preOpChecks(pool, deadline);
-        return _joinPool(pool, amounts, receiver);
+        return _joinPool(pool, amounts, minLPAmount, receiver);
     }
 
     /**
@@ -103,6 +104,7 @@ abstract contract WeightedOperations is
         address pool,
         address[] memory tokens,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         address receiver,
         uint64 deadline
     ) 
@@ -115,6 +117,7 @@ abstract contract WeightedOperations is
         return _joinPool(
             pool, 
             _createAmountsArrayFromTokens(pool, tokens, amounts),
+            minLPAmount,
             receiver
         );
     }
@@ -146,6 +149,7 @@ abstract contract WeightedOperations is
         address pool,
         address token,
         uint256 amount,
+        uint256 minLPAmount,
         address receiver,
         uint64 deadline
     ) 
@@ -160,6 +164,7 @@ abstract contract WeightedOperations is
         return _joinPool(
             pool, 
             _createAmountsArrayFromTokens(pool, tokens, amounts), 
+            minLPAmount,
             receiver
         );
     }
@@ -192,6 +197,7 @@ abstract contract WeightedOperations is
     function exitPool(
         address pool,
         uint256 lpAmount,
+        uint256[] memory minAmountsOut,
         address receiver,
         uint64 deadline
     ) 
@@ -202,7 +208,7 @@ abstract contract WeightedOperations is
     {
         _preOpChecks(pool, deadline);
         IWeightedStorage poolStorage = IWeightedStorage(pool);
-        amounts = _exitPool(pool, lpAmount, receiver);
+        amounts = _exitPool(pool, lpAmount, minAmountsOut, receiver);
         tokens = poolStorage.getTokens();
     }
 
@@ -230,6 +236,7 @@ abstract contract WeightedOperations is
         address pool,
         uint256 lpAmount,
         address token,
+        uint256 minAmountOut,
         address receiver,
         uint64 deadline
     ) 
@@ -239,7 +246,7 @@ abstract contract WeightedOperations is
         returns (uint256 receivedAmount)
     {
         _preOpChecks(pool, deadline);
-        return _exitPoolSingleToken(pool, lpAmount, token, receiver);
+        return _exitPoolSingleToken(pool, lpAmount, token, minAmountOut, receiver);
     }
 
     /**

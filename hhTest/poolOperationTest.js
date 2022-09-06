@@ -7,7 +7,7 @@
  * 5. Swap tokens using sell / buy
  * 6. Withdraw all tokens / single token
  * 7. Deploy another pool
- * 8. Test wirtual swaps for multiple pools
+ * 8. Test virtual swaps for multiple pools
  */
 
 const { takeSnapshot, loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
@@ -43,6 +43,7 @@ describe('WeightedPool -> initialization', function() {
             weightedVault.connect(owner).joinPool(
                 weightedPool.address,
                 new Array(tokens.length).fill(0),
+                0,
                 owner.address,
                 getDeadline()
             )
@@ -66,10 +67,39 @@ describe('WeightedPool -> initialization', function() {
             weightedVault.connect(owner).joinPool(
                 weightedPool.address,
                 amounts,
+                0,
                 owner.address,
                 getDeadline()
             )
         ).to.be.revertedWith('HIKARU#405')
+    })
+
+    it ('Initialize pool with invalid minLPAmount', async function () {
+        const {
+            weightedPool,
+            weightedVault,
+            tokens,
+            owner
+        } = await loadFixture(deploySystemWithDefaultParameters);
+        const amounts = await generateEqualTokenAmounts(1, tokens, owner.address);
+        await approveInfToAddress(tokens, weightedVault.address, owner);
+
+        const expectedLpAmount = await weightedVault.calculateJoinPool(
+            weightedPool.address,
+            amounts
+        )
+
+        await expect(
+            weightedVault.connect(owner).joinPool(
+                weightedPool.address,
+                amounts,
+                expectedLpAmount.add(1),
+                owner.address,
+                getDeadline()
+            )
+        ).to.be.revertedWith(
+            'HIKARU#413'
+        )
     })
 
     it ('Initialize pool with specified amount of tokens', async function () {
@@ -137,7 +167,55 @@ describe('WeightedPool -> provide tokens to pool', function() {
     })
 
     it ('WeightedPool -> joinPool (with invalid deadline)', async function () {
-        // TODO: add tests for invalid deadline
+        const {
+            weightedPool,
+            weightedVault,
+            tokens,
+            owner
+        } = initSnapshot.snapshotData;
+
+        const amounts = await generateEqualTokenAmounts(1, tokens);
+        const expectedLpAmount = await weightedVault.calculateJoinPool(weightedPool.address, amounts);
+
+        await expect(
+            weightedVault.connect(owner).joinPool(
+                weightedPool.address,
+                amounts,
+                expectedLpAmount,
+                owner.address,
+                1
+            )
+        ).to.be.revertedWith(
+            'HIKARU#505'
+        )
+    })
+
+    it ('WeightedPool -> joinPool (with invalid expected LP amount)', async function () {
+        const {
+            weightedPool,
+            weightedVault,
+            tokens,
+            owner
+        } = initSnapshot.snapshotData;
+
+        const amounts = await generateEqualTokenAmounts(1, tokens, owner.address);
+        await approveInfToAddress(tokens, weightedVault.address, owner);
+        const expectedLpAmount = await weightedVault.calculateJoinPool(
+            weightedPool.address,
+            amounts
+        );
+
+        await expect(
+            weightedVault.connect(owner).joinPool(
+                weightedPool.address,
+                amounts,
+                expectedLpAmount.add(1),
+                owner.address,
+                getDeadline()
+            )
+        ).to.be.revertedWith(
+            'HIKARU#413'
+        )
     })
 
     /// In this test nothing must change
@@ -374,7 +452,6 @@ describe('WeightedPool -> swap tokens in pool', function() {
 
     it ('Try to swap in invalid pool', async function() {
         const {
-            weightedPool,
             weightedVault,
             unknownUser,
             tokens
@@ -710,16 +787,48 @@ describe('WeightedPool -> withdraw tokens from pool', function() {
             owner
         } = initSnapshot.snapshotData;
 
+        const expectedAmountOut = (await weightedVault.calculateExitPool(
+            weightedPool.address,
+            1
+        )).amounts;
+
         await expect(
             weightedVault.connect(owner).exitPool(
                 weightedPool.address,
                 1,
+                expectedAmountOut,
                 owner.address,
                 1
             )
         ).to.be.revertedWith(
             'HIKARU#505'
         )
+    })
+
+    it ('Weighted pool -> exitPool (with invalid expected amount out)', async function () {
+        const {
+            weightedPool,
+            weightedVault,
+            owner
+        } = initSnapshot.snapshotData;
+
+        const lpAmount = ONE;
+        const expectedAmountOut = (await weightedVault.calculateExitPool(
+            weightedPool.address,
+            lpAmount
+        )).amounts;
+
+        await expect(
+            weightedVault.connect(owner).exitPool(
+                weightedPool.address,
+                lpAmount,
+                expectedAmountOut.map((val) => val.add(1)),
+                owner.address,
+                getDeadline()
+            )
+        ).to.be.revertedWith(
+            'HIKARU#414'
+        );
     })
 
     it ('Weighted pool -> exitPool (zero tokens)', async function () {
@@ -734,6 +843,7 @@ describe('WeightedPool -> withdraw tokens from pool', function() {
             weightedVault.connect(owner).exitPool(
                 weightedPool.address,
                 0,
+                tokens.map(() => 0),
                 owner.address,
                 getDeadline()
             )
@@ -769,11 +879,41 @@ describe('WeightedPool -> withdraw tokens from pool', function() {
                 weightedPool.address,
                 1,
                 tokens[0].address,
+                1,
                 owner.address,
                 1
             )
         ).to.be.revertedWith(
             'HIKARU#505'
+        );
+    })
+
+    it ('Weighted pool -> exitPoolSingleToken (invalid expected amount out)', async function() {
+        const {
+            weightedPool,
+            weightedVault,
+            owner,
+            tokens
+        } = initSnapshot.snapshotData;
+
+        const lpAmount = ONE;
+        const exptectedAmountOut = await weightedVault.calculateExitPoolSingleToken(
+            weightedPool.address, 
+            lpAmount,
+            tokens[0].address
+        );
+
+        await expect(
+            weightedVault.connect(owner).exitPoolSingleToken(
+                weightedPool.address,
+                lpAmount,
+                tokens[0].address,
+                exptectedAmountOut.add(1),
+                owner.address,
+                getDeadline()
+            )
+        ).to.be.revertedWith(
+            'HIKARU#414'
         );
     })
 
@@ -790,6 +930,7 @@ describe('WeightedPool -> withdraw tokens from pool', function() {
                 weightedPool.address,
                 0,
                 tokens[0].address,
+                0,
                 owner.address,
                 getDeadline()
             )
@@ -821,6 +962,7 @@ describe('WeightedPool -> withdraw tokens from pool', function() {
             weightedVault.connect(owner).exitPool(
                 weightedPool.address,
                 lpAmount,
+                calculatedTokenAmounts,
                 owner.address,
                 getDeadline()
             )
@@ -884,6 +1026,7 @@ describe('WeightedPool -> withdraw tokens from pool', function() {
                 weightedPool.address,
                 lpAmount,
                 tokens[0].address,
+                calculatedTokenAmount,
                 owner.address,
                 getDeadline()
             )
@@ -956,6 +1099,7 @@ describe('WeightedPool -> swaps with multiple pools', function() {
             weightedVault.connect(unknownUser).joinPool(
                 secondPool.address,
                 initialAmounts,
+                tokens.map(() => 0),
                 unknownUser.address,
                 getDeadline()
             )

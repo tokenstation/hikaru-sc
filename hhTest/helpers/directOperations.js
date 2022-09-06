@@ -61,29 +61,46 @@ async function provide(
     let txReceipt = undefined;
 
     if (joinType == JoinTypes.SingleToken) {
+        const expectedLpAmount = await weightedVault.calculateSingleTokenPoolJoin(
+            weightedPool.address,
+            sortedTokens[0].address,
+            joinAmounts[0]
+        );
         txReceipt = await weightedVault.connect(provider).singleTokenPoolJoin(
             weightedPool.address,
             sortedTokens[0].address,
             joinAmounts[0],
+            expectedLpAmount,
             receiver,
             getDeadline()
         )
     }
 
     if (joinType == JoinTypes.PartialJoin) {
+        const expectedLpAmount = await weightedVault.calculatePartialPoolJoin(
+            weightedPool.address,
+            sortedTokens.map((val) => val.address),
+            joinAmounts
+        );
         txReceipt = await weightedVault.connect(provider).partialPoolJoin(
             weightedPool.address,
             sortedTokens.map((val) => val.address),
             joinAmounts,
+            expectedLpAmount,
             receiver,
             getDeadline()
         )
     }
 
     if (joinType == JoinTypes.FullJoin) {
+        const expectedLpAmount = await weightedVault.calculateJoinPool(
+            weightedPool.address,
+            joinAmounts
+        );
         txReceipt = await weightedVault.connect(provider).joinPool(
             weightedPool.address,
             joinAmounts,
+            expectedLpAmount,
             receiver,
             getDeadline()
         )
@@ -119,17 +136,28 @@ async function withdraw(
     let txReceipt = undefined;
     if (singleTokenExit) {
         await weightedPool.getTokenId(token);
+        const expectedAmountOut = await weightedVault.calculateExitPoolSingleToken(
+            weightedPool.address,
+            lpAmount,
+            token
+        )
         txReceipt = await weightedVault.connect(withdrawer).exitPoolSingleToken(
             weightedPool.address,
             lpAmount,
             token,
+            expectedAmountOut,
             receiver,
             getDeadline()
         );
     } else {
+        const expectedAmountOut = await weightedVault.calculateExitPool(
+            weightedPool.address,
+            lpAmount
+        )
         txReceipt = await weightedVault.connect(withdrawer).exitPool(
             weightedPool.address,
             lpAmount,
+            expectedAmountOut,
             receiver,
             getDeadline()
         );

@@ -9,14 +9,11 @@ import { IFlashloan, IFlashloanReceiver } from "./interfaces/IFlashloan.sol";
 import { FixedPoint } from "../../utils/Math/FixedPoint.sol";
 import { ReentrancyGuard } from "../../utils/ReentrancyGuard.sol";
 import { ArrayUtils } from "../../utils/libraries/ArrayUtils.sol";
+
+import "../ProtocolFees/ProtocolFees.sol";
 import "../../utils/Errors/ErrorLib.sol";
 
 interface IFlashloanManager {
-    /**
-     * @notice Set new flashloan fee receiver
-     * @param newFeeReceiver Address of new fee receiver
-     */
-    function setFeeReceiver(address newFeeReceiver) external;
 
     /**
      * @notice Set new flashloan fees coefficient
@@ -25,21 +22,17 @@ interface IFlashloanManager {
     function setFlashloanFees(uint256 flashloanFees) external;
 }
 
-abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
+abstract contract Flashloan is ProtocolFees, ReentrancyGuard, IFlashloan, IFlashloanManager {
 
-    event FeeReceiverUpdate(address indexed newFeeReceiver);
     event FlashloanFeesUpdate(uint256 indexed newFlashloanFees);
 
     using FixedPoint for uint256;
 
-    address feeReceiver;
     uint256 public flashloanFee;
 
     constructor(
-        address feeReceiver_,
         uint256 flashloanFee_
     ) {
-        _setFeeReceiver(feeReceiver_);
         _setFlashloanFees(flashloanFee_);
     }
 
@@ -61,10 +54,11 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
         uint256[] memory initBalances = new uint256[](tokens.length);
 
         ArrayUtils.checkUniqueness(tokens);
+        ArrayUtils.checkZeroElement(amounts);
 
         for (uint256 tokenId = 0; tokenId < tokens.length; tokenId++) {
             initBalances[tokenId] = tokens[tokenId].balanceOf(address(this));
-            fees[tokenId] = _getFee(amounts[tokenId], flashloanFee_);
+            fees[tokenId] = _calculateFee(amounts[tokenId], flashloanFee_);
             IERC20(tokens[tokenId]).transfer(address(receiver), amounts[tokenId]);
         }
 
@@ -76,25 +70,8 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
                 balanceAfter >= initBalances[tokenId] + fees[tokenId],
                 Errors.NOT_ENOUGH_FEE_RECEIVED
             );
-            tokens[tokenId].transfer(feeReceiver, balanceAfter - initBalances[tokenId]);
+            _addProtocolFee(address(tokens[tokenId]), balanceAfter - initBalances[tokenId]);
         } 
-    }
-
-    /**
-     * @notice Set new flashloan receiver
-     * @param newFeeReceiver Fee receiver address
-     */
-    function _setFeeReceiver(
-        address newFeeReceiver
-    ) 
-        internal
-    {
-        _require(
-            newFeeReceiver != address(0),
-            Errors.ZERO_ADDRESS
-        );
-        emit FeeReceiverUpdate(newFeeReceiver);
-        feeReceiver = newFeeReceiver;
     }
 
     /**
@@ -112,22 +89,5 @@ abstract contract Flashloan is ReentrancyGuard, IFlashloan, IFlashloanManager {
         );
         emit FlashloanFeesUpdate(flashloanFees_);
         flashloanFee = flashloanFees_;
-    }
-
-    /**
-     * @notice Multiply amount by flashloan fee coefficient
-     * @param amount Amount to multiply
-     * @param flashloanFee_ Flashloan fee coefficient
-     * @return fee Deducted fee
-     */
-    function _getFee(
-        uint256 amount,
-        uint256 flashloanFee_
-    )
-        internal
-        pure
-        returns(uint256 fee)
-    {
-        fee = amount.mulDown(flashloanFee_);
     }
 }

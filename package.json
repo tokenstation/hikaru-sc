@@ -1,32 +1,23 @@
 {
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0",
-    "@openzeppelin/test-helpers": "^0.5.15",
-    "@truffle/hdwallet-provider": "^2.0.8",
+    "@openzeppelin/contracts": "^4.7.3",
+    "@openzeppelin/test-helpers": "^0.5.16",
     "bn-chai": "^1.0.1",
     "bn.js": "^5.2.1",
-    "dotenv": "^16.0.1",
-    "glob": "7.2.0",
-    "truffle-hdwallet-provider": "^1.0.17",
-    "truffle-plugin-verify": "^0.5.26",
-    "typescript": "^4.7.4",
-    "web3-utils": "^1.7.3"
+    "dotenv": "^16.0.2",
+    "glob": "8.0.3",
+    "typescript": "^4.8.2",
+    "web3-utils": "^1.7.5"
   },
   "name": "hikaru-sc",
   "description": "Hikaru - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start-tron-container": "docker run -it -p 9090:9090 -e defaultBalance=100000 -e mnemonic=\"glory unfold blind actress surround army neck maid purity wedding pen meat\" --rm --name tron trontools/quickstart ",
-    "install-tron-container": "docker pull trontools/quickstart",
-    "start-evm-fork": "ganache",
-    "compile": "truffle compile --all",
-    "migrate": "truffle migrate --network development --compile-none --reset",
-    "test": "truffle test --network development --compile-none",
-    "hh-compile": "npx hardhat compile",
-    "hh-test": "npx hardhat test",
-    "hh-gas-report": "REPORT_GAS=true npx hardhat test",
-    "hh-coverage": "npx hardhat coverage",
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "gas-report": "REPORT_GAS=true npx hardhat test",
+    "coverage": "npx hardhat coverage",
     "extract-abi": "yarn compile && node ./extractAbi.js"
   },
   "repository": {

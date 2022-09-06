@@ -24,6 +24,61 @@ abstract contract ProtocolFees {
         _setProtocolFee(protocolFee_);
     }
 
+    function _calculateFee(
+        uint256 amount,
+        uint256 feeCoefficient
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        return amount.mulDown(feeCoefficient);
+    }
+
+    function _addProtocolFee(
+        address token,
+        uint256 fee
+    )
+        internal
+    {
+        collectedFees[token] += fee;
+    }
+
+    function _addProtocolFees(
+        address[] memory tokens,
+        uint256[] memory fees
+    ) 
+        internal
+    {
+        for (uint256 id = 0; id < tokens.length; id++) {
+            _addProtocolFee(tokens[id], fees[id]);
+        }
+    }
+
+    function _withdrawProtocolFee(
+        address token,
+        uint256 fee
+    )
+        internal
+    {
+        _require(
+            collectedFees[token] >= fee,
+            Errors.TOO_MUCH_FEE_WITHDRAWN
+        );
+        collectedFees[token] -= fee;
+    }
+
+    function _withdrawProtocolFees(
+        address[] memory tokens,
+        uint256[] memory fees
+    )
+        internal
+    {
+        for (uint256 id = 0; id < tokens.length; id++) {
+            _withdrawProtocolFee(tokens[id], fees[id]);
+        }
+    }
+
     /**
      * @notice Deduct fees for provided token amounts
      * @param tokens Array of token addresses
@@ -62,8 +117,8 @@ abstract contract ProtocolFees {
         returns (uint256 deductedFee)
     {
         if (_protocolFee == 0 || amount == 0) return 0;
-        deductedFee = amount.mulDown(_protocolFee);
-        collectedFees[token] += deductedFee;
+        deductedFee = _calculateFee(amount, _protocolFee);
+        _addProtocolFee(token, deductedFee);
     }
 
     /**
@@ -100,6 +155,7 @@ abstract contract ProtocolFees {
         uint256[] memory amounts,
         address[] memory to
     ) external virtual;
+
     /**
      * @notice Transfer collected fees to provided addresses
      * @dev Array length must be the same
@@ -114,14 +170,10 @@ abstract contract ProtocolFees {
     )
         internal
     {
+        _withdrawProtocolFees(tokens, amounts);
         for (uint256 id = 0; id < tokens.length; id++) {
-            _require(
-                amounts[id] <= collectedFees[tokens[id]],
-                Errors.TOO_MUCH_FEE_WITHDRAWN
-            );
             IERC20 token = IERC20(tokens[id]);
             token.transferToUser(to[id], amounts[id]);
-            collectedFees[tokens[id]] -= amounts[id];
         }
     }
 }

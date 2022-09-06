@@ -172,15 +172,42 @@ describe('Test flashloans', function () {
         )
     })
 
+    it ('FlashloanMock -> try to initiate flashloan with zero amounts', async function () {
+        const {
+            tokens,
+            weightedVault,
+            owner
+        } = initSnapshot.snapshotData;
+
+        const amounts = new Array(tokens.length).fill(100);
+        amounts[0] = 0;
+
+        await expect(
+            flashloanMock.connect(owner).initiateFlashloan(
+                weightedVault.address,
+                tokens.map((val) => val.address),
+                amounts,
+                true,
+                false,
+                false
+            )
+        ).to.be.revertedWith(
+            'HIKARU#106'
+        );
+    })
+
     it ('FlashloanMock -> default flashloan', async function () {
         const {
             tokens,
             weightedVault,
-            owner,
-            feeReceiver
+            owner
         } = initSnapshot.snapshotData;
 
         const flAmounts = new Array(tokens.length).fill(100000)
+
+        const initProtocolFees = await Promise.all(
+            tokens.map((val) => weightedVault.collectedFees(val.address))
+        );
 
         const tx = await flashloanMock.connect(owner).initiateFlashloan(
             weightedVault.address,
@@ -203,61 +230,78 @@ describe('Test flashloans', function () {
 
         await expect(
             tx
-        ).to.changeTokenBalances(
+        ).to.changeTokenBalance(
             tokens[0],
-            [feeReceiver.address, flashloanMock.address],
-            [fees[0], -fees[0]]
-        ).and.to.changeTokenBalances(
+            flashloanMock.address,
+            -fees[0]
+        ).and.to.changeTokenBalance(
             tokens[1],
-            [feeReceiver.address, flashloanMock.address],
-            [fees[1], -fees[1]]
-        ).and.to.changeTokenBalances(
+            flashloanMock.address,
+            -fees[1]
+        ).and.to.changeTokenBalance(
             tokens[2],
-            [feeReceiver.address, flashloanMock.address],
-            [fees[2], -fees[2]]
-        ).and.to.changeTokenBalances(
+            flashloanMock.address,
+            -fees[2]
+        ).and.to.changeTokenBalance(
             tokens[3],
-            [feeReceiver.address, flashloanMock.address],
-            [fees[3], -fees[3]]
+            flashloanMock.address,
+            -fees[3]
         )
+
+        const finalProtocolFees = await Promise.all(
+            tokens.map((val) => weightedVault.collectedFees(val.address))
+        );
 
         for (const [id, token] of tokens.entries()) {
             expect(flTokens[id]).to.be.eq(token.address, 'Invalid token address flashloaned');
             expect(flAmounts[id]).to.be.eq(receivedAmounts[id], 'Invalid amount of tokens received for flashloan');
+            expect(
+                finalProtocolFees[id]
+            ).to.be.eq(initProtocolFees[id].add(fees[id]), 'Invalid amount of fees added to procol fees');
         }
     })
 
-    it ('FeeReceiver -> withdraw fees', async function () {
+    it ('WeightedVault -> withdraw fees', async function () {
         const {
             tokens,
-            feeReceiver,
+            weightedVault,
             owner
         } = initSnapshot.snapshotData;
 
-        const balances = await Promise.all(tokens.map(async (val) => val.balanceOf(feeReceiver.address)));
+        const fees = await Promise.all(
+            tokens.map((val) => weightedVault.collectedFees(val.address))
+        );
 
         await expect(
-            feeReceiver.connect(owner).withdrawFeesTo(
+            weightedVault.connect(owner).withdrawCollectedFees(
                 tokens.map((val) => val.address),
-                new Array(tokens.length).fill(owner.address),
-                balances
+                fees,
+                new Array(tokens.length).fill(owner.address)
             )
         ).to.changeTokenBalances(
             tokens[0],
-            [feeReceiver.address, owner.address],
-            [-balances[0], balances[0]]
+            [weightedVault.address, owner.address],
+            [-fees[0], fees[0]]
         ).and.to.changeTokenBalances(
             tokens[1],
-            [feeReceiver.address, owner.address],
-            [-balances[1], balances[1]]
+            [weightedVault.address, owner.address],
+            [-fees[1], fees[1]]
         ).and.to.changeTokenBalances(
             tokens[2],
-            [feeReceiver.address, owner.address],
-            [-balances[2], balances[2]]
+            [weightedVault.address, owner.address],
+            [-fees[2], fees[2]]
         ).and.to.changeTokenBalances(
             tokens[3],
-            [feeReceiver.address, owner.address],
-            [-balances[3], balances[3]]
+            [weightedVault.address, owner.address],
+            [-fees[3], fees[3]]
         )
+
+        const finalProtocolFees = await Promise.all(
+            tokens.map((val) => weightedVault.collectedFees(val.address))
+        );
+
+        expect(
+            finalProtocolFees
+        ).to.deep.eq(new Array(finalProtocolFees.length).fill(0), 'Invalid remaining protocol fees');
     })
 })

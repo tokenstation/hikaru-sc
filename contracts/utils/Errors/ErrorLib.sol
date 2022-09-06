@@ -100,6 +100,7 @@ library Errors {
     uint256 internal constant INPUT_LENGTH_MISMATCH = 103;
     uint256 internal constant ZERO_TOKEN = 104;
     uint256 internal constant ZERO_INVARIANT = 105;
+    uint256 internal constant UNEXPECTED_ZERO_ELEMENT = 106;
 
     // Libs
     uint256 internal constant TOKEN_DUPLICATION = 200;
@@ -130,6 +131,8 @@ library Errors {
     uint256 internal constant MAX_OUT_RATIO = 410;
     uint256 internal constant MIN_BPT_IN_FOR_TOKEN_OUT = 411;
     uint256 internal constant MAX_OUT_BPT_FOR_TOKEN_IN = 412;
+    uint256 internal constant NOT_ENOUGH_LP_TOKENS_RECEIVED = 413;
+    uint256 internal constant NOT_ENOUGH_TOKENS_RECEIVED_ON_EXIT = 414;
 
     // Vaults
     uint256 internal constant VAULT_DOES_NOT_IMPLEMENT_REQUIRED_INTERFACE = 500;

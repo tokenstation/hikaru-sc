@@ -24,12 +24,11 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
     constructor(
         address weightedPoolFactory_,
         uint256 flashloanFee_,
-        address flashloanFeeReceiver_,
         uint256 protocolFee_
     )
         WeightedOperations(weightedPoolFactory_)
         ProtocolFees(protocolFee_)
-        Flashloan(flashloanFeeReceiver_, flashloanFee_)
+        Flashloan(flashloanFee_)
         Manageable(msg.sender)
     {
         
@@ -99,19 +98,6 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         onlyManager
     {
         _setFlashloanFees(flashloanFees_);
-    }
-
-    /**
-     * @inheritdoc IFlashloanManager
-     */
-    function setFeeReceiver(
-        address feeReceiver_
-    )
-        external
-        override
-        onlyManager
-    {
-        _setFeeReceiver(feeReceiver_);
     }
 
     /**

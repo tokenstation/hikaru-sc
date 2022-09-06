@@ -10,13 +10,12 @@ import { IWeightedStorage } from "../../SwapContracts/WeightedPool/interfaces/IW
 import { IWeightedPool } from "../../SwapContracts/WeightedPool/interfaces/IWeightedPool.sol";
 import { WeightedVaultStorage } from "./WeightedVaultStorage.sol";
 import { Flashloan } from "../Flashloan/Flashloan.sol";
-import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 import { IVaultPoolInfo } from "../interfaces/IVaultPoolInfo.sol";
 import "../interfaces/ISwap.sol";
 import "../../utils/Errors/ErrorLib.sol";
 
 
-abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan, ProtocolFees, IVaultPoolInfo {
+abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan, IVaultPoolInfo {
 
     event Swap(address pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address user);
     event Deposit(address pool, uint256 lpAmount, uint256[] tokensDeposited, address user);
@@ -223,6 +222,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     function _joinPool(
         address pool,
         uint256[] memory tokenAmounts,
+        uint256 minLPAmount,
         address receiver
     )
         internal
@@ -233,7 +233,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         address[] memory tokens = IWeightedStorage(pool).getTokens();
         tokenAmounts = _transferTokensFrom(tokens, tokenAmounts, user);
         uint256[] memory fees;
-        (lpAmount, fees) = IWeightedPool(pool).joinPool(balances, receiver, tokenAmounts);
+        (lpAmount, fees) = IWeightedPool(pool).joinPool(balances, receiver, tokenAmounts, minLPAmount);
         uint256[] memory _protocolFees = _deductFees(tokens, fees);
         for(uint256 id = 0; id < tokens.length; id++) {
             tokenAmounts[id] -= _protocolFees[id];
@@ -251,6 +251,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     function _exitPool(
         address pool,
         uint256 lpAmount,
+        uint256[] memory minAmountsOut,
         address receiver
     )
         internal
@@ -258,7 +259,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
     {
         address user = msg.sender;
         uint256[] memory balances = _getPoolBalances(pool);
-        (tokensReceived, ) = IWeightedPool(pool).exitPool(_getPoolBalances(pool), user, lpAmount);
+        (tokensReceived, ) = IWeightedPool(pool).exitPool(_getPoolBalances(pool), user, lpAmount, minAmountsOut);
         tokensReceived = _transferTokensTo(IWeightedStorage(pool).getTokens(), tokensReceived, receiver);
         _postLpUpdate(pool, lpAmount, balances, tokensReceived, receiver, false);
     }
@@ -275,6 +276,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         address pool,
         uint256 lpAmount,
         address token,
+        uint256 minAmountOut,
         address receiver
     )
         internal
@@ -287,7 +289,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
         uint256[] memory fees;
         uint256[] memory _protocolFees;
 
-        (tokensReceived, fees) = IWeightedPool(pool).exitPoolSingleToken(balances, user, lpAmount, token);
+        (tokensReceived, fees) = IWeightedPool(pool).exitPoolSingleToken(balances, user, lpAmount, token, minAmountOut);
         _protocolFees = _deductFees(tokens, fees);
 
         _transferTokensTo(tokens, tokensReceived, receiver);

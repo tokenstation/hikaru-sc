@@ -104,7 +104,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
     function joinPool(
         uint256[] memory balances,
         address user,
-        uint256[] memory amounts_
+        uint256[] memory amounts_,
+        uint256 minLPAmount
     )
         external
         override
@@ -122,6 +123,10 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
             (lpAmount, fee) = _calculateJoinPool(balances, amounts_);
         }
 
+        _require(
+            lpAmount >= minLPAmount,
+            Errors.NOT_ENOUGH_LP_TOKENS_RECEIVED
+        );
         _postJoinExit(user, lpAmount, true);
     }
 
@@ -131,7 +136,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
     function exitPool(
         uint256[] memory balances,
         address user,
-        uint256 lpAmount
+        uint256 lpAmount,
+        uint256[] memory minAmountsOut
     )
         external
         override
@@ -140,6 +146,14 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
         _onlyVault();
         tokensReceived = _calculateExitPool(balances, lpAmount);
         fees = new uint256[](N_TOKENS);
+
+        for (uint256 tokenId = 0; tokenId < tokensReceived.length; tokenId++) {
+            _require(
+                tokensReceived[tokenId] >= minAmountsOut[tokenId],
+                Errors.NOT_ENOUGH_TOKENS_RECEIVED_ON_EXIT
+            );
+        }
+
         _postJoinExit(user, lpAmount, false);
     }
 
@@ -150,7 +164,8 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
         uint256[] memory balances,
         address user,
         uint256 lpAmount,
-        address token
+        address token,
+        uint256 minAmountOut
     )
         external
         override
@@ -158,6 +173,10 @@ contract WeightedPool is IWeightedPool, BaseWeightedPool, Manageable {
     {
         _onlyVault();
         (tokenDeltas, fee) = _calculateExitSingleToken(balances, token, lpAmount);
+        _require(
+            tokenDeltas[_getTokenId(token)] >= minAmountOut,
+            Errors.NOT_ENOUGH_TOKENS_RECEIVED_ON_EXIT
+        );
         _postJoinExit(user, lpAmount, false);
     }
 
