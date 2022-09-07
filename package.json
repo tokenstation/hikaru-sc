@@ -17,7 +17,9 @@
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "gas-report": "REPORT_GAS=true npx hardhat test",
-    "coverage": "npx hardhat coverage"
+    "coverage": "npx hardhat coverage",
+    "sff": "npx hardhat flatten",
+    "flatten": "mkdir -p flatContracts && yarn sff contracts/tests/ERC20Mock.sol > ./flatContracts/ERC20Mock_flat.sol && yarn sff contracts/Factories/WeightedFactory/WeightedPoolFactory.sol > ./flatContracts/WeightedFactory_flat.sol && yarn sff contracts/Vaults/WeightedVault/WeightedVault.sol > ./flatContracts/WeightedVault_flat.sol && yarn sff contracts/Router/DefaultRouter.sol > ./flatContracts/DefaultRouter_flat.sol"
   },
   "repository": {
     "type": "git",

@@ -11,7 +11,7 @@ import { IWeightedVault } from "../../Vaults/WeightedVault/interfaces/IWeightedV
 import { BaseSplitCodeFactory } from "../../utils/CodeSplitter/BaseSplitCodeFactory.sol";
 
 contract WeightedPoolFactory is IFactory, BaseSplitCodeFactory {
-    IWeightedVault internal weightedVault;
+    IWeightedVault public weightedVault;
 
     event PoolCreated(address indexed poolAddress);
 
