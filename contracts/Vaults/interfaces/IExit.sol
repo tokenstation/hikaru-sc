@@ -9,6 +9,7 @@ interface IFullPoolExit {
      * @notice Exit from pool using all tokens of pool
      * @param pool Address of pool
      * @param lpAmount Amount of LP tokens to burn
+     * @param minAmountsOut Minimum amount of tokens to receive
      * @param receiver Who will receive tokens
      * @param deadline If block.timestamp is greater than deadline, operation reverts
      * @return tokens Addresses of tokens that were transferred
@@ -17,6 +18,7 @@ interface IFullPoolExit {
     function exitPool(
         address pool,
         uint256 lpAmount,
+        uint256[] memory minAmountsOut,
         address receiver,
         uint64 deadline
     ) external returns (address[] memory tokens, uint256[] memory amounts);
@@ -41,6 +43,7 @@ interface IPartialPoolExit {
      * @param pool Address of pool
      * @param lpAmount Amount of LP tokens to burn
      * @param tokens Array of tokens to use for exit
+     * @param minAmountsOut Minimum amount of tokens to receive
      * @param receiver Who will receive tokens
      * @param deadline If block.timestamp is greater than deadline, operation reverts
      * @return tokens_ Addresses of tokens that were transferred
@@ -50,6 +53,7 @@ interface IPartialPoolExit {
         address pool,
         uint256 lpAmount,
         address[] memory tokens,
+        uint256[] memory minAmountsOut,
         address receiver,
         uint64 deadline
     ) external returns (address[] memory tokens_, uint256[] memory amounts);
@@ -75,6 +79,7 @@ interface IExitPoolSingleToken {
      * @param pool Address of pool
      * @param lpAmount Amount of LP tokens to burn
      * @param token Address of token to use for exit
+     * @param minAmountOut Minimum amount of tokens to receive
      * @param receiver Who will receive token transfer
      * @param deadline If block.timestamp is greater than deadline, operation reverts
      * @return receivedAmount Amount of tokens transferred to receiver
@@ -83,6 +88,7 @@ interface IExitPoolSingleToken {
         address pool,
         uint256 lpAmount,
         address token,
+        uint256 minAmountOut,
         address receiver,
         uint64 deadline
     ) external returns (uint256 receivedAmount);

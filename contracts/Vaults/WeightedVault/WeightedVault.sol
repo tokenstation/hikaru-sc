@@ -14,6 +14,7 @@ import { Flashloan, IFlashloanManager } from "../Flashloan/Flashloan.sol";
 import { WeightedVaultERC165 } from "./WeightedVaultERC165.sol";
 import { ProtocolFees } from "../ProtocolFees/ProtocolFees.sol";
 import "../../utils/Errors/ErrorLib.sol";
+
 // TODO: systematize imports
 contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVault, Manageable {
 
@@ -23,12 +24,11 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
     constructor(
         address weightedPoolFactory_,
         uint256 flashloanFee_,
-        address flashloanFeeReceiver_,
         uint256 protocolFee_
     )
         WeightedOperations(weightedPoolFactory_)
         ProtocolFees(protocolFee_)
-        Flashloan(flashloanFeeReceiver_, flashloanFee_)
+        Flashloan(flashloanFee_)
         Manageable(msg.sender)
     {
         
@@ -47,8 +47,6 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         onlyFactory
         returns (bool registerStatus)
     {
-        // TODO: add call for approve from router
-        // i.g.: if user wants to swap token that was not swap before, router performs infinite approve to vault of this token
         emit PoolRegistered(pool);
         return _registerPoolBalance(pool, tokens.length);
     }
@@ -100,19 +98,6 @@ contract WeightedVault is WeightedOperations, WeightedVaultERC165, IWeightedVaul
         onlyManager
     {
         _setFlashloanFees(flashloanFees_);
-    }
-
-    /**
-     * @inheritdoc IFlashloanManager
-     */
-    function setFeeReceiver(
-        address feeReceiver_
-    )
-        external
-        override
-        onlyManager
-    {
-        _setFeeReceiver(feeReceiver_);
     }
 
     /**

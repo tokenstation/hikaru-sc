@@ -83,18 +83,6 @@ contract DefaultRouter {
         }
     }
 
-    function _createArraysForTokenAndAmount(
-        address token,
-        uint256 amount
-    )
-        internal
-        pure
-        returns (address[] memory tokens, uint256[] memory amounts)
-    {
-        tokens = new address[](1); tokens[0] = token;
-        amounts = new uint256[](1); amounts[0] = amount;
-    }
-
     function _transferTokenFromUser(
         address token,
         address user,
@@ -120,108 +108,43 @@ contract DefaultRouter {
         }
     }
 
-    function sellTokens(
+    function swap(
         address vault,
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 minAmountOut,
+        SwapRoute[] calldata swapRoute,
+        SwapType swapType,
+        uint256 swapAmount,
+        uint256 minMaxAmount,
+        address receiver,
         uint64 deadline
-    ) 
-        external
-        returns (uint256)
-    {
-        _checkContractInterface(
-            vault, 
-            type(ISellTokens).interfaceId
-        );
-        _checkTokenAllowance(tokenIn, amountIn, vault);
-        amountIn = _transferTokenFromUser(tokenIn, msg.sender, amountIn);
-        return ISellTokens(vault).sellTokens(pool, tokenIn, tokenOut, amountIn, minAmountOut, msg.sender, deadline);
-    }
-
-    function calculateSellTokens(
-        address vault,
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn
     )
         external
-        view
         returns (uint256)
     {
         _checkContractInterface(
             vault, 
-            type(ISellTokens).interfaceId
+            type(ISwap).interfaceId
         );
-        return ISellTokens(vault).calculateSellTokens(pool, tokenIn, tokenOut, amountIn);
-    }
 
-    function buyTokens(
-        address vault,
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountToBuy,
-        uint256 maxAmountIn,
-        uint64 deadline
-    ) 
-        external
-        returns (uint256)
-    {   
-        _checkContractInterface(
-            vault, 
-            type(IBuyTokens).interfaceId
-        );
-        _checkTokenAllowance(tokenIn, maxAmountIn, vault);
-        uint256 transferFromUser = IBuyTokens(vault).calculateBuyTokens(pool, tokenIn, tokenOut, amountToBuy);
-        _transferTokenFromUser(tokenIn, msg.sender, transferFromUser);
-        return IBuyTokens(vault).buyTokens(pool, tokenIn, tokenOut, amountToBuy, maxAmountIn, msg.sender, deadline);
-    }
+        uint256 amountIn;
+        if (swapType == SwapType.Sell) {
+            amountIn = swapAmount;
+        }
 
-    function calculateBuyTokens(
-        address vault,
-        address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountToBuy
-    )
-        external
-        view
-        returns (uint256)
-    {
-        _checkContractInterface(
-            vault, 
-            type(IBuyTokens).interfaceId
-        );
-        return IBuyTokens(vault).calculateBuyTokens(pool, tokenIn, tokenOut, amountToBuy);
-    }
+        if (swapType == SwapType.Buy) {
+            amountIn = ISwap(vault).calculateSwap(swapRoute, swapType, swapAmount);
+        }
 
-    function virtualSwap(
-        address vault,
-        VirtualSwapInfo[] calldata swapRoute,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        uint64 deadline
-    ) 
-        external
-        returns (uint256)
-    {
-        _checkContractInterface(
-            vault, 
-            type(IVirtualSwap).interfaceId
-        );
         _checkTokenAllowance(swapRoute[0].tokenIn, amountIn, vault);
-        amountIn = _transferTokenFromUser(swapRoute[0].tokenIn, msg.sender, amountIn);
-        return IVirtualSwap(vault).virtualSwap(swapRoute, amountIn, minAmountOut, msg.sender, deadline);
+        _transferTokenFromUser(swapRoute[0].tokenIn, msg.sender, amountIn);
+
+        return ISwap(vault).swap(swapRoute, swapType, swapAmount, minMaxAmount, receiver, deadline);
     }
 
-    function calculateVirtualSwap(
+    function calculateSwap(
         address vault,
-        VirtualSwapInfo[] calldata swapRoute,
-        uint256 amountIn
+        SwapRoute[] calldata swapRoute,
+        SwapType swapType,
+        uint256 swapAmount
     )
         external
         view
@@ -229,15 +152,16 @@ contract DefaultRouter {
     {
         _checkContractInterface(
             vault, 
-            type(IVirtualSwap).interfaceId
+            type(ISwap).interfaceId
         );
-        return IVirtualSwap(vault).calculateVirtualSwap(swapRoute, amountIn);
+        return ISwap(vault).calculateSwap(swapRoute, swapType, swapAmount);
     }
 
     function fullJoin(
         address vault,
         address pool,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         uint64 deadline
     ) 
         external
@@ -250,7 +174,7 @@ contract DefaultRouter {
         address[] memory tokens = IVaultPoolInfo(vault).getPoolTokens(pool);
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
-        return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
+        return IFullPoolJoin(vault).joinPool(pool, amounts, minLPAmount, msg.sender, deadline);
     }
 
     function calculateFullJoin(
@@ -274,6 +198,7 @@ contract DefaultRouter {
         address pool,
         address[] memory tokens,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         uint64 deadline
     ) 
         external
@@ -285,7 +210,7 @@ contract DefaultRouter {
         );
         _checkAllowanceAndSetInf(tokens, amounts, vault);
         amounts = _transferTokensFromUser(tokens, msg.sender, amounts);
-        return IFullPoolJoin(vault).joinPool(pool, amounts, msg.sender, deadline);
+        return IPartialPoolJoin(vault).partialPoolJoin(pool, tokens, amounts, minLPAmount, msg.sender, deadline);
     }
 
     function calculatePartialJoin(
@@ -310,6 +235,7 @@ contract DefaultRouter {
         address pool,
         address token,
         uint256 amount,
+        uint256 minLPAmount,
         uint64 deadline
     ) 
         external
@@ -321,7 +247,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(token, amount, vault);
         amount = _transferTokenFromUser(token, msg.sender, amount);
-        return IJoinPoolSingleToken(vault).singleTokenPoolJoin(pool, token, amount, msg.sender, deadline);
+        return IJoinPoolSingleToken(vault).singleTokenPoolJoin(pool, token, amount, minLPAmount, msg.sender, deadline);
     }
 
     function calculateSingleTokenJoin(
@@ -345,6 +271,7 @@ contract DefaultRouter {
         address vault,
         address pool,
         uint256 lpAmount,
+        uint256[] memory minAmountsOut,
         uint64 deadline
     ) 
         external
@@ -356,7 +283,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IFullPoolExit(vault).exitPool(pool, lpAmount, msg.sender, deadline);
+        return IFullPoolExit(vault).exitPool(pool, lpAmount, minAmountsOut, msg.sender, deadline);
     }
 
     function calculateExit(
@@ -380,6 +307,7 @@ contract DefaultRouter {
         address pool,
         uint256 lpAmount,
         address[] memory tokens,
+        uint256[] memory minAmountsOut,
         uint64 deadline
     ) 
         external
@@ -391,7 +319,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IPartialPoolExit(vault).partialPoolExit(pool, lpAmount, tokens, msg.sender, deadline);
+        return IPartialPoolExit(vault).partialPoolExit(pool, lpAmount, tokens, minAmountsOut, msg.sender, deadline);
     }
 
     function calculatePartialExit(
@@ -416,6 +344,7 @@ contract DefaultRouter {
         address pool,
         uint256 lpAmount,
         address token,
+        uint256 minAmountOut,
         uint64 deadline
     ) 
         external
@@ -427,7 +356,7 @@ contract DefaultRouter {
         );
         _checkTokenAllowance(pool, lpAmount, vault);
         lpAmount = _transferTokenFromUser(pool, msg.sender, lpAmount);
-        return IExitPoolSingleToken(vault).exitPoolSingleToken(pool, lpAmount, token, msg.sender, deadline);
+        return IExitPoolSingleToken(vault).exitPoolSingleToken(pool, lpAmount, token, minAmountOut, msg.sender, deadline);
     }
 
     function calculateSingleTokenExit(

@@ -7,7 +7,7 @@ import {IERC20Mintable, ERC20, IERC20} from "./ERC20Mock.sol";
 
 import {IFlashloan, IFlashloanReceiver} from "../Vaults/Flashloan/interfaces/IFlashloan.sol";
 
-contract FlashloanerMock is IFlashloanReceiver {
+contract FlashloanMock is IFlashloanReceiver {
     bool public returnFlashloan;
     bool public tryReentrancy;
     bool public tryToStealTokens;
@@ -72,7 +72,9 @@ contract FlashloanerMock is IFlashloanReceiver {
         // Here we try to manipulate tokens of pool
         // First we mint tokens to vault before flashloan and burn them after
         if(tryToStealTokens) {
-            _burnTokensFromVault();
+            _burnTokensFromVault(
+                tokens
+            );
         }
     }
 

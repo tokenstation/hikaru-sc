@@ -47,13 +47,15 @@ interface IWeightedPool {
      * @param balances Virtual balances of pool
      * @param user User that receives LP tokens
      * @param amounts_ Amounts of tokens provided to pool
+     * @param minLPAmount Minimum amount of LP tokens received by user
      * @return lpAmount Amount of LP tokens received by user
      * @return fee Charged fees on amounts_
      */
     function joinPool(
         uint256[] memory balances,
         address user,
-        uint256[] memory amounts_
+        uint256[] memory amounts_,
+        uint256 minLPAmount
     ) external returns(uint256 lpAmount, uint256[] memory fee);
 
     /**
@@ -62,11 +64,15 @@ interface IWeightedPool {
      * @param balances Virtual balances of pool
      * @param user User who's LP tokens will be burnt
      * @param lpAmount Amount of lp tokens to burn
+     * @param minAmountsOut Minimum amount of tokens received on exit
+     * @return tokensReceived Amount of tokens received by user
+     * @return fee Fee paid to pool
      */
     function exitPool(
         uint256[] memory balances,
         address user,
-        uint256 lpAmount
+        uint256 lpAmount,
+        uint256[] memory minAmountsOut
     ) external returns (uint256[] memory tokensReceived, uint256[] memory fee);
 
     /**
@@ -75,12 +81,16 @@ interface IWeightedPool {
      * @param user User who's LP tokens will be burnt
      * @param lpAmount Amount of lp tokens to burn
      * @param token Address of token that will be received
+     * @param minAmountOut Minimum amount of tokens received on exit
+     * @return tokenDeltas Amount of tokens received by user
+     * @return fee Fee paid to pool
      */
     function exitPoolSingleToken(
         uint256[] memory balances,
         address user,
         uint256 lpAmount,
-        address token
+        address token,
+        uint256 minAmountOut
     ) external returns (uint256[] memory tokenDeltas, uint256[] memory fee);
 
     /**

@@ -5,7 +5,7 @@
 pragma solidity 0.8.6;
 
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import { ISellTokens, IBuyTokens, IVirtualSwap } from "../interfaces/ISwap.sol";
+import { ISwap } from "../interfaces/ISwap.sol";
 import { IFullPoolJoin, IPartialPoolJoin, IJoinPoolSingleToken } from "../interfaces/IJoin.sol";
 import { IFullPoolExit, IExitPoolSingleToken } from "../interfaces/IExit.sol";
 import { IFlashloan } from "../Flashloan/interfaces/IFlashloan.sol";
@@ -32,9 +32,7 @@ contract WeightedVaultERC165 is IERC165 {
         return 
             interfaceId == type(IERC165).interfaceId ||
 
-            interfaceId == type(ISellTokens).interfaceId ||
-            interfaceId == type(IBuyTokens).interfaceId ||
-            interfaceId == type(IVirtualSwap).interfaceId ||
+            interfaceId == type(ISwap).interfaceId ||
 
             interfaceId == type(IFullPoolJoin).interfaceId ||
             interfaceId == type(IPartialPoolJoin).interfaceId ||

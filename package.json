@@ -1,27 +1,25 @@
 {
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0",
-    "@openzeppelin/test-helpers": "^0.5.15",
-    "@truffle/hdwallet-provider": "^2.0.8",
+    "@openzeppelin/contracts": "^4.7.3",
+    "@openzeppelin/test-helpers": "^0.5.16",
     "bn-chai": "^1.0.1",
     "bn.js": "^5.2.1",
-    "dotenv": "^16.0.1",
-    "truffle-hdwallet-provider": "^1.0.17",
-    "truffle-plugin-verify": "^0.5.26",
-    "web3-utils": "^1.7.3"
+    "dotenv": "^16.0.2",
+    "glob": "8.0.3",
+    "typescript": "^4.8.2",
+    "web3-utils": "^1.7.5"
   },
-  "name": "dswap-contracts-v1",
-  "description": "DSwap - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
+  "name": "hikaru-sc",
+  "description": "Hikaru - smart-contracts to perform swaps ¯\\_(ツ)_/¯",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start-tron-container": "docker run -it -p 9090:9090 -e defaultBalance=100000 -e mnemonic=\"glory unfold blind actress surround army neck maid purity wedding pen meat\" --rm --name tron trontools/quickstart ",
-    "install-tron-container": "docker pull trontools/quickstart",
-    "start-evm-fork": "ganache",
-    "compile": "truffle compile --all",
-    "migrate": "truffle migrate --network development --compile-none --reset",
-    "test": "truffle test --network development --compile-none",
-    "extract-abi": "yarn compile && node ./extractAbi.js"
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "gas-report": "REPORT_GAS=true npx hardhat test",
+    "coverage": "npx hardhat coverage",
+    "sff": "npx hardhat flatten",
+    "flatten": "mkdir -p flatContracts && yarn sff contracts/tests/ERC20Mock.sol > ./flatContracts/ERC20Mock_flat.sol && yarn sff contracts/Factories/WeightedFactory/WeightedPoolFactory.sol > ./flatContracts/WeightedFactory_flat.sol && yarn sff contracts/Vaults/WeightedVault/WeightedVault.sol > ./flatContracts/WeightedVault_flat.sol && yarn sff contracts/Router/DefaultRouter.sol > ./flatContracts/DefaultRouter_flat.sol"
   },
   "repository": {
     "type": "git",
@@ -35,7 +33,27 @@
   "author": "tokenstation.dev",
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/tokenstation/DSwap-Contracts-V1/issues"
+    "url": "https://github.com/tokenstation/hikaru-sc/issues"
   },
-  "homepage": "https://github.com/tokenstation/DSwap-Contracts-V1#readme"
+  "homepage": "https://github.com/tokenstation/hikaru-sc#readme",
+  "devDependencies": {
+    "@ethersproject/abi": "^5.7.0",
+    "@ethersproject/providers": "^5.7.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.4",
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@typechain/ethers-v5": "^10.1.0",
+    "@typechain/hardhat": "^6.1.2",
+    "chai": "^4.3.6",
+    "ethers": "^5.7.0",
+    "hardhat": "^2.10.2",
+    "hardhat-abi-exporter": "^2.10.0",
+    "hardhat-deploy": "^0.11.12",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.7.21",
+    "ts-node": "^10.9.1",
+    "typechain": "^8.1.0"
+  }
 }

@@ -10,6 +10,7 @@ interface IFullPoolJoin {
      * @notice Join pool using all tokens in pool
      * @param pool Address of pool
      * @param amounts Array with token amounts that will be used for providing tokens
+     * @param minLPAmount Minimum amount of LP tokens to receive
      * @param receiver Who will receive lp tokens
      * @param deadline If block.timestamp is greater than deadline, operation reverts
      * @return lpAmount Amount of lp tokens received
@@ -17,6 +18,7 @@ interface IFullPoolJoin {
     function joinPool(
         address pool,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         address receiver,
         uint64 deadline
     ) external returns (uint256 lpAmount);
@@ -39,6 +41,7 @@ interface IPartialPoolJoin {
      * @param pool Address of pool
      * @param tokens Array of token addresses used for pool join
      * @param amounts Amounts of tokens to use for join
+     * @param minLPAmount Minimum amount of LP tokens to receive
      * @param receiver Who will receive LP tokens
      * @param deadline If block.timestamp is greater than deadline, operation reverts
      * @return lpAmount Amount of lp tokens recieved
@@ -47,6 +50,7 @@ interface IPartialPoolJoin {
         address pool,
         address[] memory tokens,
         uint256[] memory amounts,
+        uint256 minLPAmount,
         address receiver,
         uint64 deadline
     ) external returns (uint256 lpAmount);
@@ -71,6 +75,7 @@ interface IJoinPoolSingleToken {
      * @param pool Address of pool
      * @param token Token to use for join
      * @param amount Amount of token to use for join
+     * @param minLPAmount Minimum amount of LP tokens to receive
      * @param receiver Who will receive lp tokens
      * @param deadline If block.timestamp is greater than deadline, operation reverts
      * @return lpAmount Amount of lp tokens received
@@ -79,6 +84,7 @@ interface IJoinPoolSingleToken {
         address pool,
         address token,
         uint256 amount,
+        uint256 minLPAmount,
         address receiver,
         uint64 deadline
     ) external returns (uint256 lpAmount);
