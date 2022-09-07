@@ -261,6 +261,23 @@ describe('Test flashloans', function () {
         }
     })
 
+    it ('WeightedVault -> check flashloan fees', async function () {
+        const {
+            tokens,
+            weightedVault
+        } = initSnapshot.snapshotData;
+
+        const fees = await Promise.all(
+            tokens.map((val) => weightedVault.collectedFees(val.address))
+        );
+
+        for (const [id, token] of tokens.entries()) {
+            expect(
+                fees[id]
+            ).to.be.gt(0, 'Zero fee amount detected');
+        }
+    })
+
     it ('WeightedVault -> withdraw fees', async function () {
         const {
             tokens,

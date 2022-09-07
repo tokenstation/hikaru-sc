@@ -3,6 +3,7 @@ import 'solidity-coverage';
 import '@typechain/hardhat';
 import '@typechain/ethers-v5';
 import 'hardhat-deploy';
+import 'hardhat-abi-exporter'
 import {HardhatUserConfig} from 'hardhat/types';
 
 const config: HardhatUserConfig = {
@@ -49,6 +50,12 @@ const config: HardhatUserConfig = {
     outDir: './typechain',
     target: 'ethers-v5',
     alwaysGenerateOverloads: true
+  },
+  abiExporter: {
+    path: './exportedAbi',
+    runOnCompile: true,
+    clear: true,
+    format: 'json'
   }
 };
 

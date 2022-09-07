@@ -17,8 +17,7 @@
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "gas-report": "REPORT_GAS=true npx hardhat test",
-    "coverage": "npx hardhat coverage",
-    "extract-abi": "yarn compile && node ./extractAbi.js"
+    "coverage": "npx hardhat coverage"
   },
   "repository": {
     "type": "git",
@@ -48,6 +47,7 @@
     "chai": "^4.3.6",
     "ethers": "^5.7.0",
     "hardhat": "^2.10.2",
+    "hardhat-abi-exporter": "^2.10.0",
     "hardhat-deploy": "^0.11.12",
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.7.21",
