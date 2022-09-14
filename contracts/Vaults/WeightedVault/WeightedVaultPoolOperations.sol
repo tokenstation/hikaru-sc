@@ -134,7 +134,7 @@ abstract contract WeightedVaultPoolOperations is WeightedVaultStorage, Flashloan
                 currentSwap, 
                 swapType, 
                 swapAmount, 
-                minMaxAmount, 
+                currentMinMax, 
                 inMemoryProtocolFee
             );
             if (swapId == swapPath.length - 1) {
