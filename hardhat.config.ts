@@ -31,7 +31,7 @@ const config: HardhatUserConfig = {
     }
   },
   paths: {
-    tests: './hhTest',
+    tests: './tests',
     deploy: './hhDeploy',
     deployments: './hhDeployments'
   },
