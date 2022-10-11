@@ -1,99 +1,54 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// @title Hikaru.fi integration for SunSwap
+// @author tokenstation.dev
+
 pragma solidity 0.8.6;
+
+/**
+ * For Join/Exit operations we imagine that pool has tokens in order:
+ * [WTRX, T1] without regard to actual WTRX and T1 address values
+ * 
+ * Most of the checks are performed by SunSwap itself:
+ * - Checking deadline
+ * - Checking for min/max amounts
+ * So we need to perform just initial parameter verifications
+ */
 
 import "../../../Vaults/interfaces/IOperations.sol";
 import "../../../Vaults/interfaces/IVaultPoolInfo.sol";
 import "../../../Vaults/BalanceManager/interfaces/IExternalBalanceManager.sol";
 
-import "../interfaces/ISunSwapExchange.sol";
-import "../interfaces/ISunSwapFactory.sol";
-import "../interfaces/ITRXWrapper.sol";
+import "../interfaces/IJustswapExchange.sol";
+import "../interfaces/IJustswapFactory.sol";
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import "../utils/SunSwapTRXUtils.sol";
 
-contract SunSwapERC165 is IERC165 {
-    constructor() {}
+import "../../../utils/TokenAllowanceStorage.sol";
+import "../../../utils/TokenInteractions.sol";
+import "../../../utils/ReentrancyGuard.sol";
 
-    function supportsInterface(bytes4 interfaceId) external override pure returns (bool) {
-        return 
-            interfaceId == type(IERC165).interfaceId ||
+import "./SunSwapERC165.sol";
 
-            interfaceId == type(ISwap).interfaceId ||
-
-            interfaceId == type(IFullPoolJoin).interfaceId ||
-            interfaceId == type(IPartialPoolJoin).interfaceId ||
-            interfaceId == type(IJoinPoolSingleToken).interfaceId ||
-
-            interfaceId == type(IFullPoolExit).interfaceId ||
-            interfaceId == type(IPartialPoolExit).interfaceId ||
-            interfaceId == type(IExitPoolSingleToken).interfaceId ||
-
-            interfaceId == type(IExternalBalanceManager).interfaceId ||
-            
-            interfaceId == type(IVaultPoolInfo).interfaceId;
-    }
-}
-
-
-contract SunSwapTRXUtils {
-    using Address for address payable;
-
-    // Contract for wrapping/unwrapping TRX
-    ITRXWrapper immutable public trxWrapper;
-
-
-    constructor(
-        ITRXWrapper trxWrapper_
-    ) {
-        trxWrapper = trxWrapper_;
-    }
-
-    function isWTRX(address token) internal view returns (bool) {
-        return token == address(trxWrapper);
-    } 
-
-    function wrapAmount(
-        uint256 amount
-    ) 
-        internal 
-        returns (uint256)
-    {
-        payable(address(trxWrapper)).sendValue(amount);
-        return amount;
-    } 
-
-    function unwrapAmount(
-        uint256 amount
-    )
-        internal
-        returns (uint256)
-    {
-        trxWrapper.withdraw(amount);
-        return amount;
-    }
-}
-
-
-abstract contract SunSwapVault is 
+contract SunSwapVault is 
+    ReentrancyGuard,
     SunSwapTRXUtils,
+    TokenAllowancesStorage,
     SunSwapERC165,
+    TokenInteractions,
     ISwap,
     IFullPoolJoin,
-    IPartialPoolJoin,
-    IJoinPoolSingleToken,
     IFullPoolExit,
-    IPartialPoolExit,
-    IExitPoolSingleToken,
     IExternalBalanceManager,
     IVaultPoolInfo
 {
-
     constructor(
         ITRXWrapper trxWrapContract_
     )
         SunSwapTRXUtils(trxWrapContract_) 
     {}
+
+    // Some trx were received
+    receive() external payable {}
 
     /**
      * @notice Checks wether there is only one swap in route
@@ -143,6 +98,70 @@ abstract contract SunSwapVault is
         );
     }
 
+    /*************************************************
+                       IVaultPoolInfo
+     *************************************************/
+
+    /**
+     * @inheritdoc IVaultPoolInfo
+     */
+    function getPoolTokens(
+        address pool
+    ) 
+        external 
+        view 
+        override
+        returns (address[] memory tokens) 
+    {
+        tokens = new address[](2);
+        tokens[0] = address(trxWrapper);
+        tokens[1] = IJustswapExchange(pool).tokenAddress();
+    }
+
+    /*************************************************
+                   IExternalBalanceManager
+     *************************************************/
+
+    /**
+     * @inheritdoc IExternalBalanceManager
+     */
+    function getPoolBalances(
+        address pool
+    ) 
+        external 
+        view 
+        override
+        returns (uint256[] memory poolBalances)
+    {
+        poolBalances = new uint256[](2);
+        poolBalances[0] = pool.balance;
+        poolBalances[1] = IERC20(
+            IJustswapExchange(pool).tokenAddress()
+        ).balanceOf(pool);
+    }
+
+    /**
+     * @inheritdoc IExternalBalanceManager
+     */
+    function getPoolTokenBalance(
+        address pool,
+        address token
+    ) 
+        external 
+        view 
+        override
+        returns (uint256 tokenBalance)
+    {
+        if (token == address(trxWrapper)) return pool.balance;
+        return IERC20(
+            IJustswapExchange(pool).tokenAddress()
+        ).balanceOf(pool);
+    }
+
+    /*************************************************
+                        IOperations
+     *************************************************/
+
     /**
      * @inheritdoc ISwap
      */
@@ -153,23 +172,71 @@ abstract contract SunSwapVault is
         uint256 minMaxAmount,
         address receiver,
         uint64 deadline
-    ) external override returns (uint256 swapResult) {
+    ) 
+        external 
+        override 
+        reentrancyGuard
+        returns (uint256 swapResult) 
+    {
 
         requireSingleSwap(swapRoute);
         SwapRoute calldata _swap = swapRoute[0];
+
+        IJustswapExchange firstPool = IJustswapExchange(_swap.pool);
 
         bool wtrxFirst; bool wtrxSecond;
         (wtrxFirst, wtrxSecond) = findWTRXInSwap(_swap);
 
         if (wtrxFirst) {
-            // TODO
+            if (swapType == SwapType.Sell) {
+                // For sell we unwrap tokens in advance and then perform swap using all provided funds
+                _transferFrom(address(trxWrapper), msg.sender, swapAmount);
+                unwrapAmount(swapAmount);
+                return firstPool.trxToTokenTransferInput{value: swapAmount}(minMaxAmount, deadline, receiver);
+            } else {
+                // When buying we need to know amount of trx to attach to call in advance
+                swapResult = firstPool.getTrxToTokenOutputPrice(swapAmount);
+                _transferFrom(address(trxWrapper), msg.sender, swapAmount);
+                unwrapAmount(swapResult);
+                return firstPool.trxToTokenTransferOutput{value: swapResult}(minMaxAmount, deadline, receiver);
+            }
         }
+
+        // If trx is the first token, then there is no need to check allowances, as
+        // we simply attach required amount to call
+        _checkTokenAllowance(_swap.tokenIn, swapAmount, _swap.pool);
 
         if (wtrxSecond) {
-            // TODO
+            if (swapType == SwapType.Sell) {
+                // Here we need to perform swap, then wrap tokens and transfer them to user
+                // as system works only with ERC20 tokens and not with native tokens
+                swapAmount = _transferFrom(_swap.tokenIn, msg.sender, swapAmount);
+                swapResult = firstPool.tokenToTrxTransferInput(swapAmount, minMaxAmount, deadline, address(this));
+                wrapAmount(swapResult);
+                transferWTRX(receiver, swapResult);
+                return swapResult;
+            } else {
+                // Perform operation, wrap tokens and transfer them to user
+                swapResult = firstPool.getTokenToTrxOutputPrice(swapAmount);
+                _transferFrom(_swap.tokenIn, msg.sender, swapResult);
+                swapResult = firstPool.tokenToTrxTransferOutput(swapAmount, minMaxAmount, deadline, address(this));
+                wrapAmount(swapAmount);
+                transferWTRX(receiver, swapAmount);
+                return swapResult;
+            }
         }
 
-        // TODO
+        // Perform swap using only ERC20 tokens (TRX is handled by JustSwap so no need to intract with it)
+        _transferFrom(
+            _swap.tokenIn,
+            msg.sender,
+            swapType == SwapType.Sell ? 
+                swapAmount : 
+                _calculateTokenToTokenSwap(_swap, swapType, swapAmount)
+        );
+        return swapType == SwapType.Sell ?
+            firstPool.tokenToTokenTransferInput(swapAmount, minMaxAmount, 0, deadline, receiver, _swap.tokenOut) :
+            firstPool.tokenToTokenTransferOutput(swapAmount, minMaxAmount, MAX_UINT256, deadline, receiver, _swap.tokenOut); 
     }
 
     /**
@@ -179,30 +246,264 @@ abstract contract SunSwapVault is
         SwapRoute[] calldata swapRoute,
         SwapType swapType,
         uint256 swapAmount
-    ) external override view returns (uint256 swapResult) {
+    ) 
+        external 
+        override 
+        view 
+        returns (uint256 swapResult) 
+    {
         requireSingleSwap(swapRoute);
         SwapRoute calldata _swap = swapRoute[0];
 
+        // There are separate functions for swap depending on what is used for swap:
+        // 1. TRX
+        // 2. ERC20 tokens
+        // So we need to know swap type - TRX -> ERC20 / ERC20 -> TRX / ERC20 -> (TRX ->) ERC20
         bool wtrxFirst; bool wtrxSecond;
         (wtrxFirst, wtrxSecond) = findWTRXInSwap(_swap);
 
+        IJustswapExchange firstPool = IJustswapExchange(_swap.pool);
+
         if (wtrxFirst) {
-            // TODO
+            return swapType == SwapType.Sell ?  
+                firstPool.getTrxToTokenInputPrice(swapAmount) :
+                firstPool.getTrxToTokenOutputPrice(swapAmount);
         }
 
         if (wtrxSecond) {
-            // TODO
+            return swapType == SwapType.Sell ? 
+                firstPool.getTokenToTrxInputPrice(swapAmount) :
+                firstPool.getTokenToTrxOutputPrice(swapAmount);
         }
 
-        ISunSwapExchange firstPool = ISunSwapExchange(_swap.pool);
-        ISunSwapExchange secondPool = ISunSwapExchange(ISunSwapFactory(firstPool.factory()).getExchange(_swap.tokenOut));
+        return _calculateTokenToTokenSwap(
+            _swap,
+            swapType,
+            swapAmount
+        );
+    }
 
+    /**
+     * @inheritdoc IFullPoolJoin
+     * @dev If there are any ERC20 tokens left after providing liquidity 
+     * They will be returned to specified receiver address 
+     */
+    function joinPool(
+        address pool,
+        uint256[] memory amounts,
+        uint256 minLPAmount,
+        address receiver,
+        uint64 deadline
+    ) 
+        external 
+        override 
+        reentrancyGuard
+        returns (uint256 lpAmount) 
+    {
+        IJustswapExchange poolEx = IJustswapExchange(pool);
+        // Creating array of pool tokens
+        address[] memory tokens = new address[](2);
+        // First token in array is assumed to always be TRX, the second - address of 
+        // pool's ERC20 token
+        tokens[0] = address(trxWrapper); tokens[1] = poolEx.tokenAddress();
+
+        // Transferring tokens from msg sender
+        _transferTokensFrom(
+            tokens,
+            amounts,
+            msg.sender
+        );
+
+        // Checking allowances in case if any allowances are not set
+        _checkAllowanceAndSetInf(
+            tokens,
+            amounts,
+            pool
+        );
+
+        // Unwrapping WTRX to use unwrapped TRX for liquidity providing
+        unwrapAmount(amounts[0]);
+
+        // Providing liquidity
+        lpAmount = poolEx.addLiquidity{value: amounts[0]}(
+            minLPAmount,
+            MAX_UINT256,
+            deadline
+        );
+
+        // There might be tokens left after providing tokens to pool
+        // This is due to the fact that we need to provide tokens in proportion to pool's balances
+        // And we might encounter situation when there are tokens left for contract
+        // To prevent misuse of this part of code ReentrancyGuard is implemented
+        uint256 tokensToReturn = IERC20(tokens[1]).balanceOf(address(this));
+        if (tokensToReturn > 0) {
+            _transferTo(
+                tokens[1],
+                receiver,
+                tokensToReturn
+            );
+        }
+    }
+
+    /**
+     * @inheritdoc IFullPoolJoin
+     */
+    function calculateJoinPool(
+        address pool,
+        uint256[] memory amounts
+    ) 
+        external 
+        view 
+        override 
+        returns (uint256 lpAmount) 
+    {
+        return _calculateJoinLPAmount(
+            IJustswapExchange(pool),
+            amounts[0]
+        );
+    }
+
+    /**
+     * @inheritdoc IFullPoolExit
+     */
+    function exitPool(
+        address pool,
+        uint256 lpAmount,
+        uint256[] memory minAmountsOut,
+        address receiver,
+        uint64 deadline
+    ) 
+        external
+        override 
+        reentrancyGuard
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        IJustswapExchange poolEx = IJustswapExchange(pool);
+        tokens = new address[](2);
+        amounts = new uint256[](2);
+
+        tokens[0] = address(trxWrapper); tokens[1] = poolEx.tokenAddress();
+
+        // No need to check allowance as JustSwap burns tokens directly from the balance
+
+        (amounts[0], amounts[1]) = 
+            poolEx.removeLiquidity(lpAmount, minAmountsOut[0], minAmountsOut[1], deadline);
+
+        // Wrapping received ether
+        wrapAmount(amounts[0]);
+        
+        // Transferring tokens to receiver
+        _transferTokensTo(
+            tokens,
+            amounts,
+            receiver
+        );
+    }
+
+
+    /**
+     * @inheritdoc IFullPoolExit
+     */
+    function calculateExitPool(
+        address pool,
+        uint256 lpAmount
+    ) 
+        external 
+        view 
+        override 
+        returns (address[] memory tokens, uint256[] memory amounts) 
+    {
+        tokens = new address[](2);
+        amounts = new uint256[](2);
+
+        IJustswapExchange poolEx = IJustswapExchange(pool);
+        tokens[0] = address(trxWrapper);
+        tokens[1] = poolEx.tokenAddress();
+
+        (amounts[0], amounts[1]) = _calculateExitLPAmount(poolEx, lpAmount);
+    }
+
+
+    /*************************************************
+                   Calculation functions
+     *************************************************/
+
+
+    /**
+     * @notice Calculate token to token swap result in JustSwap
+     * @param _swap Swap route (first pool, tokenIn and tokenOut)
+     * @param swapType Sell/Buy tokens
+     * @param swapAmount Amount of tokens to sell/buy
+     */
+    function _calculateTokenToTokenSwap(
+        SwapRoute calldata _swap,
+        SwapType swapType,
+        uint256 swapAmount
+    )
+        internal
+        view
+        returns (uint256)
+    {
+        IJustswapExchange firstPool = IJustswapExchange(_swap.pool);
+        IJustswapExchange secondPool = IJustswapExchange(IJustswapFactory(firstPool.factoryAddress()).getExchange(_swap.tokenOut));
+
+        // Obtaining amount of TRX after the first swap for sell
+        // And amount of TRX to buy for the second swap for buy
         uint256 firstSwapAmount = swapType == SwapType.Sell ?
-            0 : 0;
+            firstPool.getTokenToTrxInputPrice(swapAmount) : 
+            secondPool.getTrxToTokenOutputPrice(swapAmount);
 
-        swapResult = swapType == SwapType.Sell ?
-            1 : 1;
+        // Obtaining amount of ERC20 received after selling TRX 
+        // And amount of tokens required to buy said amount of TRX
+        return swapType == SwapType.Sell ?
+            secondPool.getTrxToTokenInputPrice(firstSwapAmount) : 
+            firstPool.getTokenToTrxOutputPrice(firstSwapAmount) ;
+    }
 
-        // TODO
+    /**
+     * @notice Calculates amount of LP tokens received after providing tokens to SunSwap pool
+     * @param pool Instance of SunSwap pool
+     * @param trxAmount Amount of TRX used for providing liquidity
+     * @return lpAmount Amount of LP tokens received
+     */
+    function _calculateJoinLPAmount(
+        IJustswapExchange pool,
+        uint256 trxAmount
+    )
+        internal
+        view 
+        returns (uint256 lpAmount)
+    {
+        uint256 LPTotalSupply = IERC20(address(pool)).totalSupply();
+
+        if (LPTotalSupply == 0) return trxAmount;
+        uint256 trxReserve = address(pool).balance;
+
+        return trxAmount * LPTotalSupply / trxReserve;
+    }
+
+    /**
+     * @notice Calculate amount of tokens received after exiting pool
+     * @param pool Instance of SunSwap pool
+     * @param lpAmount Amount of LP tokens to use for exit
+     * @return trxReceived Amount of TRX received after exiting pool
+     * @return tokensReceived Amount of ERC20 tokens recived after exiting pool
+     */
+    function _calculateExitLPAmount(
+        IJustswapExchange pool,
+        uint256 lpAmount
+    )
+        internal
+        view
+        returns (uint256 trxReceived, uint256 tokensReceived)
+    {
+        address poolAddress = address(pool);
+        uint256 LPTotalSupply = IERC20(address(pool)).totalSupply();
+
+        uint256 tokenReserve = IERC20(pool.tokenAddress()).balanceOf(poolAddress);
+        uint256 trxReserve = poolAddress.balance;
+
+        trxReceived = lpAmount * trxReserve / LPTotalSupply;
+        tokensReceived = lpAmount * tokenReserve / LPTotalSupply;
     }
 }
