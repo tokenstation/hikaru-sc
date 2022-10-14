@@ -41,6 +41,11 @@ contract SunSwapVault is
     IExternalBalanceManager,
     IVaultPoolInfo
 {
+
+    event Swap(address pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address user);
+    event Deposit(address pool, uint256 lpAmount, uint256[] tokensDeposited, address user);
+    event Withdraw(address pool, uint256 lpAmount, uint256[] tokensReceived, address user);
+
     constructor(
         ITRXWrapper trxWrapContract_
     )
@@ -178,7 +183,6 @@ contract SunSwapVault is
         reentrancyGuard
         returns (uint256 swapResult) 
     {
-
         requireSingleSwap(swapRoute);
         SwapRoute calldata _swap = swapRoute[0];
 
@@ -192,51 +196,59 @@ contract SunSwapVault is
                 // For sell we unwrap tokens in advance and then perform swap using all provided funds
                 _transferFrom(address(trxWrapper), msg.sender, swapAmount);
                 unwrapAmount(swapAmount);
-                return firstPool.trxToTokenTransferInput{value: swapAmount}(minMaxAmount, deadline, receiver);
+                swapResult =  firstPool.trxToTokenTransferInput{value: swapAmount}(minMaxAmount, deadline, receiver);
             } else {
                 // When buying we need to know amount of trx to attach to call in advance
                 swapResult = firstPool.getTrxToTokenOutputPrice(swapAmount);
                 _transferFrom(address(trxWrapper), msg.sender, swapAmount);
                 unwrapAmount(swapResult);
-                return firstPool.trxToTokenTransferOutput{value: swapResult}(minMaxAmount, deadline, receiver);
+                swapResult = firstPool.trxToTokenTransferOutput{value: swapResult}(minMaxAmount, deadline, receiver);
             }
-        }
+        } else {
+            // If trx is the first token, then there is no need to check allowances, as
+            // we simply attach required amount to call
+            _checkTokenAllowance(_swap.tokenIn, swapAmount, _swap.pool);
 
-        // If trx is the first token, then there is no need to check allowances, as
-        // we simply attach required amount to call
-        _checkTokenAllowance(_swap.tokenIn, swapAmount, _swap.pool);
-
-        if (wtrxSecond) {
-            if (swapType == SwapType.Sell) {
-                // Here we need to perform swap, then wrap tokens and transfer them to user
-                // as system works only with ERC20 tokens and not with native tokens
-                swapAmount = _transferFrom(_swap.tokenIn, msg.sender, swapAmount);
-                swapResult = firstPool.tokenToTrxTransferInput(swapAmount, minMaxAmount, deadline, address(this));
-                wrapAmount(swapResult);
-                transferWTRX(receiver, swapResult);
-                return swapResult;
+            if (wtrxSecond) {
+                if (swapType == SwapType.Sell) {
+                    // Here we need to perform swap, then wrap tokens and transfer them to user
+                    // as system works only with ERC20 tokens and not with native tokens
+                    swapAmount = _transferFrom(_swap.tokenIn, msg.sender, swapAmount);
+                    swapResult = firstPool.tokenToTrxTransferInput(swapAmount, minMaxAmount, deadline, address(this));
+                    wrapAmount(swapResult);
+                    transferWTRX(receiver, swapResult);
+                } else {
+                    // Perform operation, wrap tokens and transfer them to user
+                    swapResult = firstPool.getTokenToTrxOutputPrice(swapAmount);
+                    _transferFrom(_swap.tokenIn, msg.sender, swapResult);
+                    swapResult = firstPool.tokenToTrxTransferOutput(swapAmount, minMaxAmount, deadline, address(this));
+                    wrapAmount(swapAmount);
+                    transferWTRX(receiver, swapAmount);
+                }
             } else {
-                // Perform operation, wrap tokens and transfer them to user
-                swapResult = firstPool.getTokenToTrxOutputPrice(swapAmount);
-                _transferFrom(_swap.tokenIn, msg.sender, swapResult);
-                swapResult = firstPool.tokenToTrxTransferOutput(swapAmount, minMaxAmount, deadline, address(this));
-                wrapAmount(swapAmount);
-                transferWTRX(receiver, swapAmount);
-                return swapResult;
+                // Perform swap using only ERC20 tokens (TRX is handled by JustSwap so no need to intract with it)
+            _transferFrom(
+                _swap.tokenIn,
+                msg.sender,
+                swapType == SwapType.Sell ? 
+                    swapAmount : 
+                    _calculateTokenToTokenSwap(_swap, swapType, swapAmount)
+            );
+            swapResult = swapType == SwapType.Sell ?
+                firstPool.tokenToTokenTransferInput(swapAmount, minMaxAmount, 0, deadline, receiver, _swap.tokenOut) :
+                firstPool.tokenToTokenTransferOutput(swapAmount, minMaxAmount, MAX_UINT256, deadline, receiver, _swap.tokenOut); 
             }
         }
 
-        // Perform swap using only ERC20 tokens (TRX is handled by JustSwap so no need to intract with it)
-        _transferFrom(
-            _swap.tokenIn,
-            msg.sender,
-            swapType == SwapType.Sell ? 
-                swapAmount : 
-                _calculateTokenToTokenSwap(_swap, swapType, swapAmount)
+        emit Swap(
+            _swap.pool, 
+            _swap.tokenIn, 
+            _swap.tokenOut, 
+            swapType == SwapType.Sell ? swapAmount : swapResult,
+            swapType == SwapType.Buy ? swapResult : swapAmount,
+            receiver
         );
-        return swapType == SwapType.Sell ?
-            firstPool.tokenToTokenTransferInput(swapAmount, minMaxAmount, 0, deadline, receiver, _swap.tokenOut) :
-            firstPool.tokenToTokenTransferOutput(swapAmount, minMaxAmount, MAX_UINT256, deadline, receiver, _swap.tokenOut); 
+        return swapResult;
     }
 
     /**
@@ -331,6 +343,8 @@ contract SunSwapVault is
             deadline
         );
 
+        IERC20(pool).transfer(receiver, lpAmount);
+
         // There might be tokens left after providing tokens to pool
         // This is due to the fact that we need to provide tokens in proportion to pool's balances
         // And we might encounter situation when there are tokens left for contract
@@ -342,7 +356,17 @@ contract SunSwapVault is
                 receiver,
                 tokensToReturn
             );
+            
+            // Accounting for leftover tokens
+            amounts[1] -= tokensToReturn;
         }
+
+        emit Deposit(
+            pool,
+            lpAmount,
+            amounts,
+            receiver
+        );
     }
 
     /**
@@ -395,6 +419,13 @@ contract SunSwapVault is
         // Transferring tokens to receiver
         _transferTokensTo(
             tokens,
+            amounts,
+            receiver
+        );
+
+        emit Withdraw(
+            pool,
+            lpAmount,
             amounts,
             receiver
         );
