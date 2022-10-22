@@ -1,3 +1,3 @@
-[submodule "submodules/sunswap1.5-contracts"]
-	path = submodules/sunswap1.5-contracts
+[submodule "contracts/Integrations/SunSwap/sunswap1.5-contracts"]
+	path = contracts/Integrations/SunSwap/sunswap1.5-contracts
 	url = https://github.com/sunswapteam/sunswap1.5-contracts
