@@ -200,7 +200,7 @@ contract SunSwapVault is
             } else {
                 // When buying we need to know amount of trx to attach to call in advance
                 swapResult = firstPool.getTrxToTokenOutputPrice(swapAmount);
-                _transferFrom(address(trxWrapper), msg.sender, swapAmount);
+                _transferFrom(address(trxWrapper), msg.sender, swapResult);
                 unwrapAmount(swapResult);
                 swapResult = firstPool.trxToTokenTransferOutput{value: swapResult}(minMaxAmount, deadline, receiver);
             }
@@ -227,25 +227,28 @@ contract SunSwapVault is
                 }
             } else {
                 // Perform swap using only ERC20 tokens (TRX is handled by JustSwap so no need to intract with it)
-            _transferFrom(
-                _swap.tokenIn,
-                msg.sender,
-                swapType == SwapType.Sell ? 
-                    swapAmount : 
-                    _calculateTokenToTokenSwap(_swap, swapType, swapAmount)
-            );
-            swapResult = swapType == SwapType.Sell ?
-                firstPool.tokenToTokenTransferInput(swapAmount, minMaxAmount, 0, deadline, receiver, _swap.tokenOut) :
-                firstPool.tokenToTokenTransferOutput(swapAmount, minMaxAmount, MAX_UINT256, deadline, receiver, _swap.tokenOut); 
+                _transferFrom(
+                    _swap.tokenIn,
+                    msg.sender,
+                    swapType == SwapType.Sell ? 
+                        swapAmount : 
+                        _calculateTokenToTokenSwap(_swap, swapType, swapAmount)
+                );
+                swapResult = swapType == SwapType.Sell ?
+                    // It's possible to use minTRXBought/maxTRXSold parameters for more in-depth control
+                    // But in this case we are only interested in token input and output
+                    firstPool.tokenToTokenTransferInput(swapAmount, minMaxAmount, 1, deadline, receiver, _swap.tokenOut) :
+                    firstPool.tokenToTokenTransferOutput(swapAmount, minMaxAmount, MAX_UINT256, deadline, receiver, _swap.tokenOut); 
             }
         }
 
+        // All cases have the same exit point
         emit Swap(
             _swap.pool, 
             _swap.tokenIn, 
             _swap.tokenOut, 
             swapType == SwapType.Sell ? swapAmount : swapResult,
-            swapType == SwapType.Buy ? swapResult : swapAmount,
+            swapType == SwapType.Sell ? swapResult : swapAmount,
             receiver
         );
         return swapResult;
@@ -327,9 +330,9 @@ contract SunSwapVault is
         );
 
         // Checking allowances in case if any allowances are not set
-        _checkAllowanceAndSetInf(
-            tokens,
-            amounts,
+        _checkTokenAllowance(
+            tokens[1],
+            amounts[1],
             pool
         );
 
@@ -339,7 +342,7 @@ contract SunSwapVault is
         // Providing liquidity
         lpAmount = poolEx.addLiquidity{value: amounts[0]}(
             minLPAmount,
-            MAX_UINT256,
+            amounts[1],
             deadline
         );
 
@@ -408,6 +411,12 @@ contract SunSwapVault is
 
         tokens[0] = address(trxWrapper); tokens[1] = poolEx.tokenAddress();
 
+        // Transfer lp tokens from user
+        _transferFrom(
+            pool,
+            msg.sender,
+            lpAmount
+        );
         // No need to check allowance as JustSwap burns tokens directly from the balance
 
         (amounts[0], amounts[1]) = 

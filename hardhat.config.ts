@@ -15,20 +15,44 @@ const config: HardhatUserConfig = {
       deploy: ['./hhDeploy'],
       loggingEnabled: true,
       allowUnlimitedContractSize: true,
-      hardfork: 'istanbul'
+      hardfork: 'istanbul',
+      gasPrice: 1
     },
     localhost: {
       url: 'http://127.0.0.1:8545/'
     }
   },
   solidity: {
-    version: "0.8.6",
-    settings: {
-        optimizer: {
-            enabled: true,
-            runs: 200   // Optimize for how many times you intend to run the code
-        },
-    }
+    compilers: [ 
+      {
+        version: "0.8.6",
+        settings: {
+          optimizer: {
+              enabled: true,
+              runs: 200   // Optimize for how many times you intend to run the code
+          },
+        }
+      },
+      {
+        version: "0.5.8",
+        settings: {
+          optimizer: {
+              enabled: true,
+              runs: 200   // Optimize for how many times you intend to run the code
+          },
+        }
+      },
+      {
+        version: '0.4.25',
+        settings: {
+          optimizer: {
+              enabled: true,
+              runs: 200   // Optimize for how many times you intend to run the code
+          },
+        }
+      }
+    ],
+    
   },
   paths: {
     tests: './tests',

@@ -1,7 +1,7 @@
 const hre = require('hardhat');
 const { SignerWithAddress } = require('@nomiclabs/hardhat-ethers/signers');
-const { BigNumber } = require('ethers');
-const { WeightedVault__factory, WeightedPoolFactory__factory, DefaultRouter__factory, ERC20Mock__factory, WeightedPool__factory } = require('../../typechain');
+const { BigNumber, Signer } = require('ethers');
+const { WeightedVault__factory, WeightedPoolFactory__factory, DefaultRouter__factory, ERC20Mock__factory, WeightedPool__factory, SunSwapVault__factory, SunswapFactory__factory, SunswapExchange__factory, WTRX__factory } = require('../../typechain');
 const { from } = require('./utils');
 
 
@@ -21,66 +21,59 @@ const { from } = require('./utils');
  */
 
 /**
- * 
- * @param {Number|BigNumber} flashloanFee 
- * @param {Number|BigNumber} protocolFee 
- * @param {String} defaultManager
+ * @param {String} factoryAddress
+ * @param {Number|String|BigNumber} flashloanFee
+ * @param {Number|String|BigNumber} protocolFee
  * @param {SignerWithAddress} deployer
- * @param {CustomManagers?} owners
- * @returns 
+ * @returns {Promise<import('../../typechain').WeightedVault>}
  */
-async function deployHikaruContracts(
+async function deployWeightedVault(
+    factoryAddress,
     flashloanFee,
     protocolFee,
-    defaultManager,
-    deployer,
-    owners
+    deployer
 ) {
-    const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-
     /**
      * @type {WeightedVault__factory}
      */
     const WeightedVault = await hre.ethers.getContractFactory('WeightedVault');
-    WeightedVault.connect(deployer);
+    const weightedVault = await WeightedVault.connect(deployer).deploy(factoryAddress, flashloanFee, protocolFee);
+    await weightedVault.deployed();
+    return weightedVault;
+}
+
+/**
+ * @param {import('../../typechain').WeightedVault} weightedVault
+ * @param {SignerWithAddress} deployer
+ * @returns {Promise<import('../../typechain').WeightedPoolFactory>}
+ */
+async function deployWeightedFactory(
+    weightedVault,
+    deployer
+) {
     /**
      * @type {WeightedPoolFactory__factory}
      */
-    const WeightedPoolFactory = await hre.ethers.getContractFactory('WeightedPoolFactory');
-    WeightedPoolFactory.connect(deployer);
+    const WeightedFactory = await hre.ethers.getContractFactory('WeightedPoolFactory');
+    const weightedFactory = await WeightedFactory.connect(deployer).deploy(weightedVault.address);
+    await weightedFactory.deployed();
+    return weightedFactory;
+}
+
+/**
+ * @param {SignerWithAddress} deployer 
+ * @returns {Promise<import('../../typechain').DefaultRouter>}
+ */
+async function deployRouter(
+    deployer
+) {
     /**
      * @type {DefaultRouter__factory}
      */
     const DefaultRouter = await hre.ethers.getContractFactory('DefaultRouter');
-    DefaultRouter.connect(deployer);
-
-    const weightedVault = await WeightedVault.deploy(
-        ZERO_ADDRESS, 
-        flashloanFee, 
-        protocolFee
-    );
-    await weightedVault.deployed();
-    const weightedPoolFactory = await WeightedPoolFactory.deploy(
-        weightedVault.address
-    );
-    await weightedPoolFactory.deployed();
-    const defaultRouter = await DefaultRouter.deploy();
+    const defaultRouter = await DefaultRouter.connect(deployer).deploy();
     await defaultRouter.deployed();
-
-    await weightedVault.setFactoryAddress(
-        weightedPoolFactory.address,
-        from(deployer.address)
-    );
-    await weightedVault.changeManager(
-        defaultManager,
-        from(deployer.address)
-    );
-
-    return {
-        weightedVault,
-        weightedPoolFactory,
-        defaultRouter
-    }
+    return defaultRouter;
 }
 
 /**
@@ -109,7 +102,6 @@ async function deployTokenContracts(
      * @type {ERC20Mock__factory}
      */
     const ERC20Mock = await hre.ethers.getContractFactory('ERC20Mock');
-    ERC20Mock.connect(deployer);
 
     /** @type {import('../../typechain').ERC20Mock[]} */
     const tokenContracts = [];
@@ -118,7 +110,7 @@ async function deployTokenContracts(
     const deployTx = [];
 
     for (const tokenInfo of tokenConfig) {
-        const token = await ERC20Mock.deploy(
+        const token = await ERC20Mock.connect(deployer).deploy(
             tokenInfo.name, 
             tokenInfo.symbol, 
             tokenInfo.decimals
@@ -156,20 +148,19 @@ async function deploySwapPool(
     deployer
 ) {
     const currentPoolCount = await weightedPoolFactory.totalPools();
-    const deployTx = await weightedPoolFactory.createPool(
+    const deployTx = await weightedPoolFactory.connect(deployer).createPool(
         poolParameters.tokenAddresses,
         poolParameters.weights,
         poolParameters.swapFee,
         poolParameters.poolName,
         poolParameters.poolSymbol,
-        poolParameters.owner,
-        from(deployer.address)
+        poolParameters.owner
     );
     const poolDeployReceipt = await deployTx.wait();
 
     /**@type {WeightedPool__factory} */
     const WeightedPool = await hre.ethers.getContractFactory('WeightedPool');
-    const weightedPool = await WeightedPool.attach(
+    const weightedPool = WeightedPool.attach(
         await weightedPoolFactory.pools(currentPoolCount)
     )
 
@@ -179,8 +170,136 @@ async function deploySwapPool(
     };
 }
 
+/**
+ * Deploy sunswap factory and perform initial setup
+ * @param {SignerWithAddress} deployer 
+ * @returns {Promise<import('../../typechain').SunswapFactory>}
+ */
+async function deploySunSwapFactory(
+    deployer
+) {
+    /**
+     * @type {SunswapFactory__factory}
+     */
+    const SunSwapFactory = await hre.ethers.getContractFactory('SunswapFactory');
+    const sunSwapFactory = await SunSwapFactory.connect(deployer).deploy();
+    await sunSwapFactory.deployed()
+    
+    /**
+     * @type {SunswapExchange__factory}
+     */
+    const SunSwapExchange = await hre.ethers.getContractFactory('SunswapExchange')
+    const sunSwapExchangeTemplate = await SunSwapExchange.connect(deployer).deploy();
+    await sunSwapExchangeTemplate.deployed();
+
+    await sunSwapFactory.initializeFactory(sunSwapExchangeTemplate.address);
+
+    return sunSwapFactory;
+}
+
+/**
+ * Deploy sunswap exchange contract using existing factory
+ * @param {import('../../typechain').SunswapFactory} sunSwapFactory 
+ * @param {import('../../typechain').ERC20} token 
+ * @param {SignerWithAddress} deployer 
+ */
+async function deploySunSwapExchange(
+    sunSwapFactory,
+    token,
+    deployer
+) {
+    await sunSwapFactory.connect(deployer).createExchange(
+        token.address
+    );
+
+    /**
+     * @type {SunswapExchange__factory}
+     */
+    const SunSwapExchange = await hre.ethers.getContractFactory('SunswapExchange');
+    const exchange = SunSwapExchange.attach(
+        await sunSwapFactory.getExchange(token.address)
+    );
+    return exchange;  
+}
+
+/**
+ * Deploy sunswap vault
+ * @param {import('../../typechain').WTRX} trxWrapper 
+ * @param {SignerWithAddress} deployer
+ * @returns {Promise<import('../../typechain').SunSwapVault>}
+ */
+async function deploySunSwapVault(
+    trxWrapper,
+    deployer
+) {
+    /**
+     * @type {SunSwapVault__factory}
+     */
+    const SunSwapVault = await hre.ethers.getContractFactory('SunSwapVault');
+    const sunSwapVault = await SunSwapVault.connect(deployer).deploy(trxWrapper.address);
+    await sunSwapVault.deployed();
+    return sunSwapVault;
+}
+
+/**
+ * Deploy WTRX contract
+ * @param {SignerWithAddress} deployer 
+ * @returns {Promise<import('../../typechain').WTRX>}
+ */
+async function deployWTRX(
+    deployer
+) {
+    /**
+     * @type {WTRX__factory}
+     */
+    const WTRX_factory = await hre.ethers.getContractFactory('WTRX');
+    const wtrx = await WTRX_factory.connect(deployer).deploy();
+    await wtrx.deployed();
+    return wtrx;
+}
+
+/**
+ * Deploy default hikaru contract system
+ * @param {Number|BigNumber} flashloanFee 
+ * @param {Number|BigNumber} protocolFee 
+ * @param {String} defaultManager
+ * @param {SignerWithAddress} deployer
+ */
+async function deployHikaruContracts(
+    flashloanFee,
+    protocolFee,
+    defaultManager,
+    deployer
+) {
+    const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+    const weightedVault = await deployWeightedVault(ZERO_ADDRESS, flashloanFee, protocolFee, deployer);
+    const weightedPoolFactory = await deployWeightedFactory(weightedVault, deployer);
+    const defaultRouter = await deployRouter(deployer);
+
+    await weightedVault.connect(deployer).setFactoryAddress(
+        weightedPoolFactory.address
+    );
+    await weightedVault.connect(deployer).changeManager(
+        defaultManager
+    );
+
+    return {
+        weightedVault,
+        weightedPoolFactory,
+        defaultRouter
+    }
+}
+
 module.exports = {
     deployHikaruContracts,
     deployTokenContracts,
-    deploySwapPool
+    deploySwapPool,
+    deployWeightedVault,
+    deployWeightedFactory,
+    deployRouter,
+    deploySunSwapFactory,
+    deploySunSwapExchange,
+    deploySunSwapVault,
+    deployWTRX
 }

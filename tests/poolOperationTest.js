@@ -137,14 +137,14 @@ describe('WeightedPool -> initialization', function() {
 
         await expect(
             tx.transactionHash
-        ).to.emit (
+        ).to.emit(
             weightedVault, 'Deposit'
         ).withArgs(
             weightedPool.address, 
             expectedLpAmount,
             amounts,
             owner.address
-        ).and.emit (
+        ).and.emit(
             weightedPool, 'Transfer'
         ).withArgs(
             ZERO_ADDRESS,
@@ -257,7 +257,7 @@ describe('WeightedPool -> provide tokens to pool', function() {
 
         await expect(
             tx.transactionHash
-        ).to.emit (
+        ).to.emit(
             weightedVault, 'Deposit'
         ).withArgs(
             weightedPool.address,
@@ -310,14 +310,14 @@ describe('WeightedPool -> provide tokens to pool', function() {
 
         await expect(
             tx.transactionHash
-        ).to.emit (
+        ).to.emit(
             weightedVault, 'Deposit'
         ).withArgs(
             weightedPool.address, 
             expectedLpAmount, 
             balanceChange, 
             unknownUser.address
-        ).and.to.emit (
+        ).and.to.emit(
             weightedPool, 'Transfer'
         ).withArgs(
             ZERO_ADDRESS, unknownUser.address, expectedLpAmount
@@ -363,7 +363,7 @@ describe('WeightedPool -> provide tokens to pool', function() {
 
         await expect(
             tx.transactionHash
-        ).to.emit (
+        ).to.emit(
             weightedPool, 'Transfer'
         ).withArgs(
             ZERO_ADDRESS,
@@ -411,7 +411,7 @@ describe('WeightedPool -> provide tokens to pool', function() {
 
         await expect(
             tx.transactionHash
-        ).to.emit (
+        ).to.emit(
             weightedPool, 'Transfer'
         ).withArgs(
             ZERO_ADDRESS,

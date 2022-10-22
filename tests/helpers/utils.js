@@ -39,6 +39,16 @@ async function generateEqualTokenAmounts(tokenAmount, tokens, to='', skip=[]) {
 }
 
 /**
+ * 
+ * @param {import('../../typechain').ERC20Mock} token 
+ * @param {import('ethers').BigNumberish} amount 
+ * @param {String} to 
+ */
+async function mintTokensTo(token, amount, to) {
+    await token.mint(to, amount);
+}
+
+/**
  * @template T
  * @param {T[]} array
  * @returns {T[]}
@@ -105,5 +115,6 @@ module.exports = {
     getDeadline,
     from,
     getSwapTypeId,
-    getProtocolFees
+    getProtocolFees,
+    mintTokensTo
 }
